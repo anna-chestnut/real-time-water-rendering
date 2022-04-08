@@ -154,7 +154,7 @@ uniform sampler2D normalMap;
 void main()
 {
 
-    vec3 col = vec3(1, 0, 0);
+    vec3 col = vec3(0, 1, 1);
 
     vec3 ambient = 0.1 * col;
 
@@ -173,7 +173,7 @@ void main()
     vec3 reflectDir = reflect(-lightDir, normal);
     float specular = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 
-    vec3 result = (ambient + diffuse + specular);
+    vec3 result = (diffuse);
 
     FragColor = vec4(result, 1.0);
 

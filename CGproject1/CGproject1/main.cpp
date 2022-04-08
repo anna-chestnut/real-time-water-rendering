@@ -1,11 +1,14 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
-#include "cyTriMesh.h"
-#include "cyGL.h"
-#include "cyMatrix.h"
+#include "res/include/cy/cyTriMesh.h"
+#include "res/include/cy/cyGL.h"
+#include "res/include/cy/cyMatrix.h"
 #include "res/include/camera.h"
 #include "res/include/lodepng.h"
+#include "res/include/Perlin/ppm.h"
+#include "res/include/Perlin/PerlinNoise.h"
+#include <cmath>
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -17,6 +20,7 @@
 #include <sstream>
 #include <assert.h>
 #include <iostream>
+#include <stdio.h>
 
 using namespace cy;
 #define PR_DEBUG
@@ -34,15 +38,14 @@ using namespace cy;
 #endif
 
 TriMesh tm;
-TriMesh cubemap;
 GLuint vertexbuffer;
 GLuint normalbuffer;
 GLuint texturebuffer;
 GLuint framebuffer = 0;
 GLuint depthbuffer;
 GLuint vao;
-// plane
-GLuint planeVao;
+// plan
+GLuint planVao;
 GLuint planVertexbuffer;
 GLuint planTexturebuffer;
 // geometry
@@ -50,10 +53,6 @@ GLuint geometryVao;
 GLuint geometryVertexbuffer;
 GLuint geometryTexturebuffer;
 // cube
-GLuint cubemapVertexbuffer;
-GLuint cubemapVao;
-GLuint texture1;
-GLuint spectexture;
 GLuint renderedTexture; 
 GLuint normalTexture;
 GLuint displacementTexture;
@@ -61,8 +60,8 @@ GLint originFB;
 
 glm::mat4 transform = glm::mat4(1.0f);
 glm::mat4 rotation = glm::mat4(1.0f);
-glm::mat4 planetransform = glm::mat4(1.0f);
-glm::mat4 planerotation = glm::mat4(1.0f);
+glm::mat4 plantransform = glm::mat4(1.0f);
+glm::mat4 planrotation = glm::mat4(1.0f);
 
 bool leftMouseButtonDown = false;
 bool rightMouseButtonDown = false;
@@ -72,10 +71,8 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera cameraPlane(glm::vec3(0.0f, 0.0f, 60.0f));
+Camera cameraplan(glm::vec3(0.0f, 0.0f, 60.0f));
 Camera camera(glm::vec3(0.0f, 0.0f, 60.0f));//60
-//float lastX = SCR_WIDTH / 2.0f;
-//float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 //
 bool firstLeftMouse = true;
@@ -90,9 +87,9 @@ float zoom = 0.0f;
 unsigned int shader;
 unsigned int normalShader;
 unsigned int tessShader;
+unsigned int planShader;
 unsigned int geometryShader;
 unsigned int numberOfV = 0;
-//unsigned int numberOfVN = 0;
 
 GLuint pos, aNormal, aTexCoord;
 GLuint vertexBindingIndex = 0;
@@ -103,8 +100,8 @@ GLuint textureBindingIndex = 2;
 std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> verticesNormal;
 std::vector<glm::vec3> verticesTexture;
-// plane
-std::vector<glm::vec3> planeVertices;
+// plan
+std::vector<glm::vec3> planVertices;
 std::vector<glm::vec2> planVerticesTexture;
 // geometry
 std::vector<glm::vec3> geometryVertices;
@@ -125,6 +122,8 @@ unsigned int VBO, VAO;
 std::string objName;    
 
 bool showTriangle = false;
+
+GLuint textureID = 0; //OpenGL texture ID to be returned
 
 struct ShaderProgramSource
 {
@@ -167,46 +166,43 @@ void myDisplay()
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
     
-    // draw normal map on the plane
+    // draw normal map on the plan
     // ----------------------------
     
     GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     glClearColor(0, 0, 0, 0);
 
-    //GLCall(glUseProgram(normalShader));
-    //GLCall(glBindVertexArray(planeVao));
     /*MVP into vertex shader*/
     glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
     glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    ////MVP
-    //GLCall(GLuint modelId = glGetUniformLocation(normalShader, "model"));
-    //assert(modelId != -1);
-    //GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+    /*model = glm::translate(model, glm::vec3(10.0f, -20.0f, -80.0f));
+    model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-    //GLCall(GLuint viewId = glGetUniformLocation(normalShader, "view"));
-    //assert(viewId != -1);
-    //GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+    GLCall(glUseProgram(planShader));
 
-    //GLCall(GLuint proId = glGetUniformLocation(normalShader, "projection"));
-    //assert(proId != -1);
-    //GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+    GLCall(GLuint modelId = glGetUniformLocation(planShader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
 
-    //GLCall(GLuint location = glGetUniformLocation(normalShader, "lightPos"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    GLCall(GLuint viewId = glGetUniformLocation(planShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
 
-    //GLCall(location = glGetUniformLocation(normalShader, "viewPos"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
-    ////texture
-    //GLCall(location = glGetUniformLocation(normalShader, "normalMap"));
-    //assert(location != -1);
-    //GLCall(glUniform1i(location, 0));
+    GLCall(GLuint proId = glGetUniformLocation(planShader, "projection"));
 
-    //// bind textures on corresponding texture units
-    //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, normalTexture);
+    GLCall(GLuint location = glGetUniformLocation(planShader, "planTexture"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    GLCall(glBindVertexArray(planVao));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));*/
+    //GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
+    //GLCall(glDrawArrays(GL_PATCHES, 0, 4));
+
     GLCall(glUseProgram(tessShader));
 
     GLCall(GLuint modelId = glGetUniformLocation(tessShader, "model"));
@@ -225,16 +221,16 @@ void myDisplay()
     assert(location != -1);
     GLCall(glUniform1i(location, 1));
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, displacementTexture);
+    glBindTexture(GL_TEXTURE_2D, textureID);
 
 
     GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-    GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+    //GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
     //texture
     GLCall(location = glGetUniformLocation(tessShader, "normalMap"));
     assert(location != -1);
@@ -252,51 +248,47 @@ void myDisplay()
     // use geometry shader
     // -------------------
 
-    if (showTriangle) {
-        GLCall(glUseProgram(geometryShader));
+    //if (showTriangle) {
+    //    GLCall(glUseProgram(geometryShader));
 
-        GLCall(modelId = glGetUniformLocation(geometryShader, "model"));
-        assert(modelId != -1);
-        GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+    //    GLCall(modelId = glGetUniformLocation(geometryShader, "model"));
+    //    assert(modelId != -1);
+    //    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
 
-        GLCall(viewId = glGetUniformLocation(geometryShader, "view"));
-        assert(viewId != -1);
-        GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+    //    GLCall(viewId = glGetUniformLocation(geometryShader, "view"));
+    //    assert(viewId != -1);
+    //    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
 
-        GLCall(proId = glGetUniformLocation(geometryShader, "projection"));
-        assert(proId != -1);
-        GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+    //    GLCall(proId = glGetUniformLocation(geometryShader, "projection"));
+    //    assert(proId != -1);
+    //    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-        GLCall(location = glGetUniformLocation(geometryShader, "heightMap"));
-        assert(location != -1);
-        GLCall(glUniform1i(location, 1));
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, displacementTexture);
+    //    GLCall(location = glGetUniformLocation(geometryShader, "heightMap"));
+    //    assert(location != -1);
+    //    GLCall(glUniform1i(location, 1));
+    //    glActiveTexture(GL_TEXTURE1);
+    //    glBindTexture(GL_TEXTURE_2D, displacementTexture);
 
 
-        GLCall(GLuint location = glGetUniformLocation(geometryShader, "lightPos"));
-        assert(location != -1);
-        GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    //    GLCall(GLuint location = glGetUniformLocation(geometryShader, "lightPos"));
+    //    assert(location != -1);
+    //    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-        GLCall(location = glGetUniformLocation(geometryShader, "viewPos"));
-        assert(location != -1);
-        GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
-        //texture
-        GLCall(location = glGetUniformLocation(geometryShader, "normalMap"));
-        assert(location != -1);
-        GLCall(glUniform1i(location, 0));
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, normalTexture);
+    //    GLCall(location = glGetUniformLocation(geometryShader, "viewPos"));
+    //    assert(location != -1);
+    //    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+    //    //texture
+    //    GLCall(location = glGetUniformLocation(geometryShader, "normalMap"));
+    //    assert(location != -1);
+    //    GLCall(glUniform1i(location, 0));
+    //    glActiveTexture(GL_TEXTURE0);
+    //    glBindTexture(GL_TEXTURE_2D, normalTexture);
 
-        GLCall(glBindVertexArray(VAO));
-        GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
-        GLCall(glDrawArrays(GL_PATCHES, 0, 4));
+    //    GLCall(glBindVertexArray(VAO));
+    //    GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
+    //    GLCall(glDrawArrays(GL_PATCHES, 0, 4));
 
-        //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
-
-        //GLCall(glBindVertexArray(geometryVao));
-        //GLCall(glDrawArrays(GL_POINTS, 0, 4));
-    }
+    //}
     glutSwapBuffers();
 
 }
@@ -346,53 +338,38 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &normalbuffer));
     GLCall(glNamedBufferStorage(normalbuffer, verticesNormal.size() * sizeof(verticesNormal[0]), &verticesNormal[0], 0));
 
-    ////texture buffer
-    //GLCall(glCreateBuffers(1, &texturebuffer));
-    //GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
-
-    // plane vertices
-    // -----------------------
-    //float allplaneVertices[] = {
+    //float allplanVertices[] = {
     //    // positions          // texture coords 
-    //     20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
-    //    -20.0f, -0.5f,  20.0f,  0.0f, 0.0f,
-    //    -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
-
-    //     20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
-    //    -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
-    //     20.0f, -0.5f, -20.0f,  1.0f, 1.0f
-    //};
-    //float allplaneVertices[] = {
-    //    // positions          // texture coords 
-    //     20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
     //    -20.0f, 20.0f,  0.0f,  0.0f, 0.0f,
     //    -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
-
     //     20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
+
     //    -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
+    //     20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
     //     20.0f, -20.0, 0.0f,  1.0f, 1.0f
     //};
-    float allplaneVertices[] = {
-        // positions          // texture coords 
-        -20.0f, 20.0f,  0.0f,  0.0f, 0.0f,
-        -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
-         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
 
-        -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
-         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
-         20.0f, -20.0, 0.0f,  1.0f, 1.0f
+    float allplanVertices[] = {
+        // positions          // texture coords 
+         20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
+        -20.0f, -0.5f,  20.0f,  0.0f, 0.0f,
+        -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
+
+         20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
+        -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
+         20.0f, -0.5f, -20.0f,  1.0f, 1.0f
     };
 
     for (unsigned int i = 0; i < 30; i = i+5)
     {
-        planeVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i+1], allplaneVertices[i+2]));
-        planVerticesTexture.push_back(glm::vec2(allplaneVertices[i + 3], allplaneVertices[i + 4]));
+        planVertices.push_back(glm::vec3(allplanVertices[i], allplanVertices[i+1], allplanVertices[i+2]));
+        planVerticesTexture.push_back(glm::vec2(allplanVertices[i + 3], allplanVertices[i + 4]));
 
-        geometryVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i + 1], allplaneVertices[i + 2]));
+        geometryVertices.push_back(glm::vec3(allplanVertices[i], allplanVertices[i + 1], allplanVertices[i + 2]));
     }
 
     GLCall(glCreateBuffers(1, &planVertexbuffer));
-    GLCall(glNamedBufferStorage(planVertexbuffer, planeVertices.size() * sizeof(planeVertices[0]), &planeVertices[0], 0));
+    GLCall(glNamedBufferStorage(planVertexbuffer, planVertices.size() * sizeof(planVertices[0]), &planVertices[0], 0));
 
     GLCall(glCreateBuffers(1, &planTexturebuffer));
     GLCall(glNamedBufferStorage(planTexturebuffer, planVerticesTexture.size() * sizeof(planVerticesTexture[0]), &planVerticesTexture[0], 0));
@@ -415,21 +392,21 @@ static void CreateVertexArrayObject()
 
     // create plan vertex array object
     // -------------------------------
-    GLCall(glCreateVertexArrays(1, &planeVao));
+    GLCall(glCreateVertexArrays(1, &planVao));
 
     //vertex buffer
-    GLCall(glVertexArrayVertexBuffer(planeVao, vertexBindingIndex, planVertexbuffer, 0, sizeof(glm::vec3))); 
-    GLCall(glVertexArrayAttribFormat(planeVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          
-    GLCall(glVertexArrayAttribBinding(planeVao, pos, vertexBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(planeVao, vertexBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(planeVao, pos));
+    GLCall(glVertexArrayVertexBuffer(planVao, vertexBindingIndex, planVertexbuffer, 0, sizeof(glm::vec3))); 
+    GLCall(glVertexArrayAttribFormat(planVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          
+    GLCall(glVertexArrayAttribBinding(planVao, pos, vertexBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(planVao, vertexBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(planVao, pos));
 
     //texture buffer
-    GLCall(glVertexArrayVertexBuffer(planeVao, textureBindingIndex, planTexturebuffer, 0, sizeof(glm::vec2)));
-    GLCall(glVertexArrayAttribFormat(planeVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                   
-    GLCall(glVertexArrayAttribBinding(planeVao, aTexCoord, textureBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
+    GLCall(glVertexArrayVertexBuffer(planVao, textureBindingIndex, planTexturebuffer, 0, sizeof(glm::vec2)));
+    GLCall(glVertexArrayAttribFormat(planVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                   
+    GLCall(glVertexArrayAttribBinding(planVao, aTexCoord, textureBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(planVao, textureBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(planVao, aTexCoord));
 
     // create quard vertex array object
     // -------------------------------
@@ -528,6 +505,10 @@ static void LoadShaders() {
     normalShader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(normalShader != -1);
 
+    source = ParseShader("res/shaders/Plan.shader");
+    planShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(planShader != -1);
+
     ShaderWithGeometryProgramSource sourceWithG = ParseShaderWithGeometry("res/shaders/Geometry.shader");
     geometryShader = CreateShaderWithGeometry(true, sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource, sourceWithG.TessControlSource, sourceWithG.TessEvaluationSource);
     assert(geometryShader != -1);
@@ -547,10 +528,16 @@ void CreateBufferTest()
         //-0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
 
          // positions          // texture coords 
-        - 20.0f, 20.0f,  0.0f,  0.0f, 1.0f,
+        - 20.0f, 20.0f,  0.0f,  0.0f, 20.0f,
         -20.0f, -20.0f, 0.0f,  0.0f, 0.0f,
-         20.0f, -20.0, 0.0f,  1.0f, 0.0f,
-         20.0f, 20.0f,  0.0f,  1.0f, 1.0f
+         20.0f, -20.0, 0.0f,  20.0f, 0.0f,
+         20.0f, 20.0f,  0.0f,  20.0f, 20.0f
+
+        // // positions          // texture coords 
+        //- 20.0f, 20.0f,  0.0f,  0.0f, 1.0f,
+        //-20.0f, -20.0f, 0.0f,  0.0f, 0.0f,
+        // 20.0f, -20.0, 0.0f,  1.0f, 0.0f,
+        // 20.0f, 20.0f,  0.0f,  1.0f, 1.0f
 
         //-20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
          //20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
@@ -568,13 +555,122 @@ void CreateBufferTest()
     glBindVertexArray(0);
 }
 
+
+int loadPPM(const char* filename) {
+
+    FILE* inFile; //File pointer
+    char buffer[100]; //Input buffer
+    GLubyte* theTexture; //Texture buffer pointer
+    unsigned char c; //Input character
+    int width, height, maxVal, pixelSize; //Image characteristics from ppm file
+
+
+    //Try to open the file for reading
+    if ((inFile = fopen(filename, "rb")) == NULL) {
+        fprintf(stderr, "cannot open %s\n", filename);
+        exit(-1);
+    }
+
+    //Read file type identifier (magic number)
+    fgets(buffer, sizeof(buffer), inFile);
+    if ((buffer[0] != 'P') || (buffer[1] != '6')) {
+        fprintf(stderr, "not a binary ppm file %s\n", filename);
+        exit(-1);
+    }
+
+    if (buffer[2] == 'A')
+        pixelSize = 4;
+    else
+        pixelSize = 3;
+
+    //Read image size
+    do fgets(buffer, sizeof(buffer), inFile);
+    while (buffer[0] == '#');
+    sscanf(buffer, "%d %d", &width, &height);
+
+    //Read maximum pixel value (usually 255)
+    do fgets(buffer, sizeof(buffer), inFile);
+    while (buffer[0] == '#');
+    sscanf(buffer, "%d", &maxVal);
+
+    //Allocate RGBA texture buffer
+    int memSize = width * height * 4 * sizeof(GLubyte);
+    theTexture = (GLubyte*)malloc(memSize);
+
+    // read RGB data and set alpha value
+    for (int i = 0; i < memSize; i++) {
+        if ((i % 4) < 3 || pixelSize == 4) {
+            c = fgetc(inFile);
+            theTexture[i] = (GLubyte)c;
+        }
+        else theTexture[i] = (GLubyte)255; //Set alpha to opaque
+    }
+    fclose(inFile);
+
+
+    glBindTexture(GL_TEXTURE_2D, ++textureID);
+
+    //Set texture parameters
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    //Ignore surface color
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    //Define the texture
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, (GLuint)width, (GLuint)height, 0, GL_RGBA, GL_UNSIGNED_BYTE, theTexture);
+
+    //Create mipmaps
+    gluBuild2DMipmaps(GL_TEXTURE_2D, 4, (GLuint)width, (GLuint)height, GL_RGBA, GL_UNSIGNED_BYTE, theTexture);
+
+    free(theTexture);
+    return(textureID);
+}
+
+
+
+void Perlin() {
+
+    // Define the size of the image
+    unsigned int width = 256, height = 256;//600 450
+
+    // Create an empty PPM image
+    ppm image(width, height);
+
+    // Create a PerlinNoise object with a random permutation vector generated with seed
+    unsigned int seed = 400;//237
+    PerlinNoise pn(seed);
+
+    unsigned int kk = 0;
+    // Visit every pixel of the image and assign a color generated with Perlin noise
+    for (unsigned int i = 0; i < height; ++i) {     // y
+        for (unsigned int j = 0; j < width; ++j) {  // x
+            double x = (double)j / ((double)width);
+            double y = (double)i / ((double)height);
+
+            // Typical Perlin noise
+            double n = pn.noise(10 * x, 10 * y, 0.8);
+
+            // Wood like structure
+            //n = 20 * pn.noise(x, y, 0.8);
+            //n = n - floor(n);
+
+            // Map the values to the [0, 255] interval, for simplicity we use 
+            // tones of grey
+            image.r[kk] = floor(255 * n);
+            image.g[kk] = floor(255 * n);
+            image.b[kk] = floor(255 * n);
+            kk++;
+        }
+    }
+
+    // Save the image in a binary PPM file
+    image.write("figure_7_P.ppm");
+
+}
+
 int main(int argc, char** argv)
 {
-    
-    /*for (int i = 0; i < argc; ++i)
-        std::cout << argv[i] << "\n";
-
-    objName = argv[1];*/
 
     glutInit(&argc, argv);
     glutInitContextFlags(GLUT_DEBUG);
@@ -603,6 +699,8 @@ int main(int argc, char** argv)
     //Framebuffer();
     
     CreateTexture();
+    Perlin();
+    loadPPM("figure_7_P.ppm");
 
     LoadShaders();
     //get origin frame buffer
@@ -995,8 +1093,8 @@ void drag2(int x, int y)
             camera.ProcessMouseScroll(static_cast<float>(zoom));
         }
         else {
-            planetransform = glm::translate(planetransform, glm::vec3(0.0f, 0.0f, zoom));
-            cameraPlane.ProcessMouseScroll(static_cast<float>(zoom));
+            plantransform = glm::translate(plantransform, glm::vec3(0.0f, 0.0f, zoom));
+            cameraplan.ProcessMouseScroll(static_cast<float>(zoom));
         }
 
     }
@@ -1037,8 +1135,8 @@ void drag2(int x, int y)
         }
         else {
 
-            planerotation = glm::rotate(planerotation, glm::radians(xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
-            planerotation = glm::rotate(planerotation, glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 1.0f));
+            planrotation = glm::rotate(planrotation, glm::radians(xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
+            planrotation = glm::rotate(planrotation, glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 1.0f));
         }
 
         mods = glutGetModifiers();

@@ -42,18 +42,24 @@
     <ClCompile Include="lodepng.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PerlinNoise.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ppm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cyTriMesh.h">
+    <ClInclude Include="res\include\cy\cyTriMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cyVector.h">
+    <ClInclude Include="res\include\cy\cyVector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cyCore.h">
+    <ClInclude Include="res\include\cy\cyCore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cyGL.h">
+    <ClInclude Include="res\include\cy\cyGL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="res\vendor\glm\detail\_features.hpp">
@@ -902,7 +908,7 @@
     <ClInclude Include="res\vendor\glm\vector_relational.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cyMatrix.h">
+    <ClInclude Include="res\include\cy\cyMatrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="res\include\camera.h">
@@ -912,6 +918,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="res\include\glad\glad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="res\include\Perlin\PerlinNoise.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="res\include\Perlin\ppm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1329,10 +1341,13 @@
     </None>
     <None Include="shader.vert" />
     <None Include="shader.frag" />
-    <None Include="res\shaders\Plane.shader" />
+    <None Include="res\shaders\Plan.shader" />
     <None Include="res\shaders\CubeMap.shader" />
     <None Include="res\shaders\Sphere.shader" />
     <None Include="res\shaders\Screen.shader" />
+    <None Include="res\shaders\Tessellation.shader" />
+    <None Include="res\shaders\NormalMapping.shader" />
+    <None Include="res\shaders\Geometry.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\texture\cubemap_negx.png">
