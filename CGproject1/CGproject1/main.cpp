@@ -44,10 +44,10 @@ GLuint texturebuffer;
 GLuint framebuffer = 0;
 GLuint depthbuffer;
 GLuint vao;
-// plan
-GLuint planVao;
-GLuint planVertexbuffer;
-GLuint planTexturebuffer;
+// plane
+GLuint planeVao;
+GLuint planeVertexbuffer;
+GLuint planeTexturebuffer;
 // geometry
 GLuint geometryVao;
 GLuint geometryVertexbuffer;
@@ -60,8 +60,8 @@ GLint originFB;
 
 glm::mat4 transform = glm::mat4(1.0f);
 glm::mat4 rotation = glm::mat4(1.0f);
-glm::mat4 plantransform = glm::mat4(1.0f);
-glm::mat4 planrotation = glm::mat4(1.0f);
+glm::mat4 planetransform = glm::mat4(1.0f);
+glm::mat4 planerotation = glm::mat4(1.0f);
 
 bool leftMouseButtonDown = false;
 bool rightMouseButtonDown = false;
@@ -71,8 +71,8 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera cameraplan(glm::vec3(0.0f, 0.0f, 60.0f));
-Camera camera(glm::vec3(0.0f, 0.0f, 60.0f));//60
+Camera cameraplane(glm::vec3(0.0f, 0.0f, 60.0f));
+Camera camera(glm::vec3(0.0f, 10.0f, 60.0f));//60
 bool firstMouse = true;
 //
 bool firstLeftMouse = true;
@@ -87,7 +87,7 @@ float zoom = 0.0f;
 unsigned int shader;
 unsigned int normalShader;
 unsigned int tessShader;
-unsigned int planShader;
+unsigned int planeShader;
 unsigned int geometryShader;
 unsigned int numberOfV = 0;
 
@@ -100,9 +100,9 @@ GLuint textureBindingIndex = 2;
 std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> verticesNormal;
 std::vector<glm::vec3> verticesTexture;
-// plan
-std::vector<glm::vec3> planVertices;
-std::vector<glm::vec2> planVerticesTexture;
+// plane
+std::vector<glm::vec3> planeVertices;
+std::vector<glm::vec2> planeVerticesTexture;
 // geometry
 std::vector<glm::vec3> geometryVertices;
 
@@ -156,7 +156,7 @@ void myKeyboard(unsigned char key, int x, int y);
 void myMouse(int button, int state, int x, int y);
 void mySpecialKeyboard(int key, int x, int y);
 void drag2(int x, int y);
-
+void timer(int);
 
 void myDisplay()
 {
@@ -166,7 +166,7 @@ void myDisplay()
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
     
-    // draw normal map on the plan
+    // draw normal map on the plane
     // ----------------------------
     
     GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
@@ -180,25 +180,25 @@ void myDisplay()
     model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-    GLCall(glUseProgram(planShader));
+    GLCall(glUseProgram(planeShader));
 
-    GLCall(GLuint modelId = glGetUniformLocation(planShader, "model"));
+    GLCall(GLuint modelId = glGetUniformLocation(planeShader, "model"));
     assert(modelId != -1);
     GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
 
-    GLCall(GLuint viewId = glGetUniformLocation(planShader, "view"));
+    GLCall(GLuint viewId = glGetUniformLocation(planeShader, "view"));
     assert(viewId != -1);
     GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
 
-    GLCall(GLuint proId = glGetUniformLocation(planShader, "projection"));
+    GLCall(GLuint proId = glGetUniformLocation(planeShader, "projection"));
 
-    GLCall(GLuint location = glGetUniformLocation(planShader, "planTexture"));
+    GLCall(GLuint location = glGetUniformLocation(planeShader, "planeTexture"));
     assert(location != -1);
     GLCall(glUniform1i(location, 0));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
-    GLCall(glBindVertexArray(planVao));
+    GLCall(glBindVertexArray(planeVao));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));*/
     //GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
     //GLCall(glDrawArrays(GL_PATCHES, 0, 4));
@@ -338,7 +338,7 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &normalbuffer));
     GLCall(glNamedBufferStorage(normalbuffer, verticesNormal.size() * sizeof(verticesNormal[0]), &verticesNormal[0], 0));
 
-    //float allplanVertices[] = {
+    //float allplaneVertices[] = {
     //    // positions          // texture coords 
     //    -20.0f, 20.0f,  0.0f,  0.0f, 0.0f,
     //    -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
@@ -349,7 +349,7 @@ static void CreateVertexBuffer()
     //     20.0f, -20.0, 0.0f,  1.0f, 1.0f
     //};
 
-    float allplanVertices[] = {
+    float allplaneVertices[] = {
         // positions          // texture coords 
          20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
         -20.0f, -0.5f,  20.0f,  0.0f, 0.0f,
@@ -362,17 +362,17 @@ static void CreateVertexBuffer()
 
     for (unsigned int i = 0; i < 30; i = i+5)
     {
-        planVertices.push_back(glm::vec3(allplanVertices[i], allplanVertices[i+1], allplanVertices[i+2]));
-        planVerticesTexture.push_back(glm::vec2(allplanVertices[i + 3], allplanVertices[i + 4]));
+        planeVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i+1], allplaneVertices[i+2]));
+        planeVerticesTexture.push_back(glm::vec2(allplaneVertices[i + 3], allplaneVertices[i + 4]));
 
-        geometryVertices.push_back(glm::vec3(allplanVertices[i], allplanVertices[i + 1], allplanVertices[i + 2]));
+        geometryVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i + 1], allplaneVertices[i + 2]));
     }
 
-    GLCall(glCreateBuffers(1, &planVertexbuffer));
-    GLCall(glNamedBufferStorage(planVertexbuffer, planVertices.size() * sizeof(planVertices[0]), &planVertices[0], 0));
+    GLCall(glCreateBuffers(1, &planeVertexbuffer));
+    GLCall(glNamedBufferStorage(planeVertexbuffer, planeVertices.size() * sizeof(planeVertices[0]), &planeVertices[0], 0));
 
-    GLCall(glCreateBuffers(1, &planTexturebuffer));
-    GLCall(glNamedBufferStorage(planTexturebuffer, planVerticesTexture.size() * sizeof(planVerticesTexture[0]), &planVerticesTexture[0], 0));
+    GLCall(glCreateBuffers(1, &planeTexturebuffer));
+    GLCall(glNamedBufferStorage(planeTexturebuffer, planeVerticesTexture.size() * sizeof(planeVerticesTexture[0]), &planeVerticesTexture[0], 0));
 
     // geometry vertices
     // -----------------------
@@ -390,23 +390,23 @@ static void CreateVertexArrayObject()
     aNormal = 1; // glGetAttribLocation(shader, "aNormal");
     aTexCoord = 2; // layout(location = 2) in vec2 aTexCoord;
 
-    // create plan vertex array object
+    // create plane vertex array object
     // -------------------------------
-    GLCall(glCreateVertexArrays(1, &planVao));
+    GLCall(glCreateVertexArrays(1, &planeVao));
 
     //vertex buffer
-    GLCall(glVertexArrayVertexBuffer(planVao, vertexBindingIndex, planVertexbuffer, 0, sizeof(glm::vec3))); 
-    GLCall(glVertexArrayAttribFormat(planVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          
-    GLCall(glVertexArrayAttribBinding(planVao, pos, vertexBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(planVao, vertexBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(planVao, pos));
+    GLCall(glVertexArrayVertexBuffer(planeVao, vertexBindingIndex, planeVertexbuffer, 0, sizeof(glm::vec3))); 
+    GLCall(glVertexArrayAttribFormat(planeVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          
+    GLCall(glVertexArrayAttribBinding(planeVao, pos, vertexBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(planeVao, vertexBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(planeVao, pos));
 
     //texture buffer
-    GLCall(glVertexArrayVertexBuffer(planVao, textureBindingIndex, planTexturebuffer, 0, sizeof(glm::vec2)));
-    GLCall(glVertexArrayAttribFormat(planVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                   
-    GLCall(glVertexArrayAttribBinding(planVao, aTexCoord, textureBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(planVao, textureBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(planVao, aTexCoord));
+    GLCall(glVertexArrayVertexBuffer(planeVao, textureBindingIndex, planeTexturebuffer, 0, sizeof(glm::vec2)));
+    GLCall(glVertexArrayAttribFormat(planeVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                   
+    GLCall(glVertexArrayAttribBinding(planeVao, aTexCoord, textureBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
 
     // create quard vertex array object
     // -------------------------------
@@ -505,9 +505,9 @@ static void LoadShaders() {
     normalShader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(normalShader != -1);
 
-    source = ParseShader("res/shaders/Plan.shader");
-    planShader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(planShader != -1);
+    source = ParseShader("res/shaders/Plane.shader");
+    planeShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(planeShader != -1);
 
     ShaderWithGeometryProgramSource sourceWithG = ParseShaderWithGeometry("res/shaders/Geometry.shader");
     geometryShader = CreateShaderWithGeometry(true, sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource, sourceWithG.TessControlSource, sourceWithG.TessEvaluationSource);
@@ -527,11 +527,17 @@ void CreateBufferTest()
         // 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
         //-0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
 
+        // // positions          // texture coords 
+        //- 20.0f, 20.0f,  0.0f,  0.0f, 20.0f,
+        //-20.0f, -20.0f, 0.0f,  0.0f, 0.0f,
+        // 20.0f, -20.0, 0.0f,  20.0f, 0.0f,
+        // 20.0f, 20.0f,  0.0f,  20.0f, 20.0f
+
          // positions          // texture coords 
-        - 20.0f, 20.0f,  0.0f,  0.0f, 20.0f,
-        -20.0f, -20.0f, 0.0f,  0.0f, 0.0f,
-         20.0f, -20.0, 0.0f,  20.0f, 0.0f,
-         20.0f, 20.0f,  0.0f,  20.0f, 20.0f
+        - 20.0f, 0.0f,  20.0f,  0.0f, 20.0f,
+        -20.0f, 0.0f, -20.0f,  0.0f, 0.0f,
+         20.0f, 0.0f, -20.0f,  20.0f, 0.0f,
+         20.0f, 0.0f,  20.0f,  20.0f, 20.0f
 
         // // positions          // texture coords 
         //- 20.0f, 20.0f,  0.0f,  0.0f, 1.0f,
@@ -549,7 +555,7 @@ void CreateBufferTest()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
@@ -707,6 +713,7 @@ int main(int argc, char** argv)
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &originFB);
 
     glutDisplayFunc(myDisplay);
+    glutTimerFunc(1000, timer, 0);
 
     glutKeyboardFunc(myKeyboard);
     glutSpecialFunc(mySpecialKeyboard);
@@ -718,6 +725,11 @@ int main(int argc, char** argv)
     return 0;
 }
 
+void timer(int) 
+{
+    glutPostRedisplay();
+    glutTimerFunc(1000 / 60, timer, 0);
+}
 
 static void GLClearError()
 {
@@ -1093,8 +1105,8 @@ void drag2(int x, int y)
             camera.ProcessMouseScroll(static_cast<float>(zoom));
         }
         else {
-            plantransform = glm::translate(plantransform, glm::vec3(0.0f, 0.0f, zoom));
-            cameraplan.ProcessMouseScroll(static_cast<float>(zoom));
+            planetransform = glm::translate(planetransform, glm::vec3(0.0f, 0.0f, zoom));
+            cameraplane.ProcessMouseScroll(static_cast<float>(zoom));
         }
 
     }
@@ -1135,8 +1147,8 @@ void drag2(int x, int y)
         }
         else {
 
-            planrotation = glm::rotate(planrotation, glm::radians(xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
-            planrotation = glm::rotate(planrotation, glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 1.0f));
+            planerotation = glm::rotate(planerotation, glm::radians(xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
+            planerotation = glm::rotate(planerotation, glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 1.0f));
         }
 
         mods = glutGetModifiers();

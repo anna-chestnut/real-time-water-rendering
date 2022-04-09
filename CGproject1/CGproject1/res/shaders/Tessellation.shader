@@ -1,7 +1,7 @@
 #shader vertex
 #version 330 core
 
-layout(location = 0) in vec2 aPos;
+layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec2 aTex;
 
 out vec2 TexCoord;
@@ -10,7 +10,7 @@ void main()
 {
     //vs_out.color = aColor;
     //gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
-    gl_Position = vec4(aPos.x, aPos.y, 0.1, 1.0);
+    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
     TexCoord = aTex;
 }
 
@@ -90,7 +90,7 @@ void main()
 
     //heightColor = texture(heightMap, texCoord).rgb;
 
-    Height = texture(heightMap, teTexCoord).z * 10.0;// * 64.0 - 16.0
+    Height = texture(heightMap, teTexCoord).y * 10.0;// * 64.0 - 16.0
     vec4 inter = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
     vec4 newPos = vec4(inter.x, inter.y, inter.z + Height, 1.0);
     gl_Position = projection * view * model * newPos;
