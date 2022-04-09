@@ -51,6 +51,7 @@ uniform sampler2D heightMap;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform unsigned int degree;
 
 in vec2 TextureCoord[];
 
@@ -89,10 +90,16 @@ void main()
     //normal = normalize(normal * 2.0 - 1.0);
 
     //heightColor = texture(heightMap, texCoord).rgb;
-
-    Height = texture(heightMap, teTexCoord).y * 10.0;// * 64.0 - 16.0
+    vec2 offset1 = vec2(0.8, 0.4) * degree * 0.001;
+    vec2 offset2 = vec2(0.6, 1.1) * degree * 0.001;
+    float hight1 = texture(heightMap, teTexCoord + offset1).y * 1;
+    float hight2 = texture(heightMap, teTexCoord + offset2).y * 1;
+    Height = hight1 + hight2;
+    //Height = texture(heightMap, teTexCoord).y * 10.0;// * 64.0 - 16.0
+    //Height = Height + sin(degree);
     vec4 inter = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
-    vec4 newPos = vec4(inter.x, inter.y, inter.z + Height, 1.0);
+    vec4 newPos = vec4(inter.x, inter.y + Height, inter.z, 1.0);
+   // newPos = vec4(newPos.x, newPos.y * degree, newPos.z, newPos.w);
     gl_Position = projection * view * model * newPos;
     tePosition = vec3(model * newPos).xyz;
 }

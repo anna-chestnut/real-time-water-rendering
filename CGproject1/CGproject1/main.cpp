@@ -125,6 +125,8 @@ bool showTriangle = false;
 
 GLuint textureID = 0; //OpenGL texture ID to be returned
 
+unsigned int sinDegree = 0;
+
 struct ShaderProgramSource
 {
     std::string VertexSource;
@@ -223,6 +225,10 @@ void myDisplay()
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
+    
+    GLCall(location = glGetUniformLocation(tessShader, "degree"));
+    assert(location != -1);
+    GLCall(glUniform1ui(location, sinDegree));
 
     GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
     assert(location != -1);
@@ -728,6 +734,7 @@ int main(int argc, char** argv)
 void timer(int) 
 {
     glutPostRedisplay();
+    sinDegree++;
     glutTimerFunc(1000 / 60, timer, 0);
 }
 
