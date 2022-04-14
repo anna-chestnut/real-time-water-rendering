@@ -5,6 +5,7 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec2 aTex;
 
 out vec2 TexCoord;
+out vec3 Normal_TS_in;
 
 void main()
 {
@@ -12,6 +13,7 @@ void main()
     //gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
     gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
     TexCoord = aTex;
+    Normal_TS_in = vec3(0, 1, 0);
 }
 
 
@@ -24,7 +26,9 @@ layout(vertices = 4) out;
 //uniform mat4 view;
 
 in vec2 TexCoord[];
+in vec3 Normal_TS_in[];
 out vec2 TextureCoord[];
+out vec3 Normal_TE_in[];
 
 void main()
 {
@@ -39,7 +43,7 @@ void main()
 
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
     TextureCoord[gl_InvocationID] = TexCoord[gl_InvocationID];
-
+    Normal_TE_in[gl_InvocationID] = Normal_TS_in[gl_InvocationID];
 }
 
 
@@ -54,11 +58,12 @@ uniform mat4 projection;
 uniform unsigned int degree;
 
 in vec2 TextureCoord[];
+in vec3 Normal_TE_in[];
 
 out float Height;
 out vec3 tePosition;
-
 out vec2 teTexCoord;
+out vec3 Normal_GS_in;
 
 vec4 interpolate(vec4 v0, vec4 v1, vec4 v2, vec4 v3) {
 
@@ -67,12 +72,18 @@ vec4 interpolate(vec4 v0, vec4 v1, vec4 v2, vec4 v3) {
     return mix(a, b, gl_TessCoord.y);
 }
 
+vec3 interpolate3D(vec3 v0, vec3 v1, vec3 v2)
+{
+    return vec3(gl_TessCoord.x) * v0 + vec3(gl_TessCoord.y) * v1 + vec3(gl_TessCoord.z) * v2;
+}
 
 void main()
 {
     /*gl_Position = (gl_TessCoord.x * gl_in[0].gl_Position +
         gl_TessCoord.y * gl_in[1].gl_Position +
         gl_TessCoord.z * gl_in[2].gl_Position);*/
+    Normal_GS_in = interpolate3D(Normal_TE_in[0], Normal_TE_in[1], Normal_TE_in[2]);
+    Normal_GS_in = normalize(Normal_GS_in);
 
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
@@ -115,7 +126,9 @@ layout(line_strip, max_vertices = 3) out;
 //out vec3 gPosition;
 
 in vec2 teTexCoord[3];
+in vec3 Normal_GS_in[3];
 out vec2 gTexCoord;
+out vec3 Normal_FS_in;
 
 void main() {
     //build_house(gl_in[0].gl_Position);
@@ -123,15 +136,18 @@ void main() {
     gl_Position = gl_in[0].gl_Position;
     gTexCoord = teTexCoord[0];
     //gPosition = tePosition[0];
+    Normal_FS_in = Normal_GS_in[0];
     EmitVertex();
 
     gl_Position = gl_in[1].gl_Position;
     gTexCoord = teTexCoord[1];
+    Normal_FS_in = Normal_GS_in[1];
     //gPosition = tePosition[1];
     EmitVertex();
 
     gl_Position = gl_in[2].gl_Position;
     gTexCoord = teTexCoord[2];
+    Normal_FS_in = Normal_GS_in[2];
     //gPosition = tePosition[2];
     EmitVertex();
 
@@ -151,7 +167,7 @@ out vec4 FragColor;
 //in float Height;
 in vec2 gTexCoord;
 in vec2 teTexCoord;
-
+in vec3 Normal_FS_in;
 in vec3 tePosition;
 
 uniform samplerCube skybox;
@@ -167,7 +183,7 @@ void main()
 
     vec3 I = normalize(tePosition - viewPos);
     vec3 R = reflect(I, vec3(0,1,0));
-    float reflectiveFactor = dot(viewDir, vec3(0, 1, 0));
+    float reflectiveFactor = dot(viewDir, Normal_FS_in);
     //FragColor = vec4(texture(skybox, R).rgb, 1.0);
     col = mix(texture(skybox, R).rgb, texture(skybox, R).rgb, reflectiveFactor) + vec3(0, 1, 1);
 
@@ -177,7 +193,7 @@ void main()
     // transform normal vector to range [-1,1]
     //normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
 
-    vec3 normal = vec3(0, 1, 0);
+    vec3 normal = vec3(0, 1, 0); //Normal_FS_in;// vec3(0, 1, 0);
 
     // diffuse 
     vec3 lightDir = normalize(lightPos - tePosition);

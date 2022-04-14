@@ -114,7 +114,7 @@ std::vector<glm::vec3> cubemapVertices;
 std::vector<glm::vec3> geometryVertices;
 
 // lighting
-glm::vec3 lightPos(20.0f, 20.0f, 10.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
+glm::vec3 lightPos(20.0f, 20.0f, -60.0f);//20f, 20f, 10.0f -60.0f, 45.0f, 20.0f
 glm::vec3 lightPosOrigin(20.0f, 20.0f, 10.0f);
 float degree = 0.0f;
 float horDegree = 0.0f;
