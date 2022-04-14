@@ -182,7 +182,7 @@ void main()
 
     vec3 result = (diffuse);
 
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(col, 1.0);
 
     /*float h = (Height) / 10.0f;
     FragColor = vec4(h, 0.0, 0.0, 1.0);*/

@@ -38,6 +38,7 @@ using namespace cy;
 #endif
 
 TriMesh tm;
+TriMesh cubemap;
 GLuint vertexbuffer;
 GLuint normalbuffer;
 GLuint texturebuffer;
@@ -53,6 +54,9 @@ GLuint geometryVao;
 GLuint geometryVertexbuffer;
 GLuint geometryTexturebuffer;
 // cube
+GLuint cubemapVertexbuffer;
+GLuint cubemapVao;
+GLuint cubeMapTexture;
 GLuint renderedTexture; 
 GLuint normalTexture;
 GLuint displacementTexture;
@@ -72,7 +76,7 @@ const unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera cameraplane(glm::vec3(0.0f, 0.0f, 60.0f));
-Camera camera(glm::vec3(0.0f, 10.0f, 60.0f));//60
+Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));//60
 bool firstMouse = true;
 //
 bool firstLeftMouse = true;
@@ -88,6 +92,7 @@ unsigned int shader;
 unsigned int normalShader;
 unsigned int tessShader;
 unsigned int planeShader;
+unsigned int cubeMapShader;
 unsigned int geometryShader;
 unsigned int numberOfV = 0;
 
@@ -103,6 +108,8 @@ std::vector<glm::vec3> verticesTexture;
 // plane
 std::vector<glm::vec3> planeVertices;
 std::vector<glm::vec2> planeVerticesTexture;
+// cube-map
+std::vector<glm::vec3> cubemapVertices;
 // geometry
 std::vector<glm::vec3> geometryVertices;
 
@@ -167,43 +174,50 @@ void myDisplay()
     glEnable(GL_DEPTH_TEST);
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-    
-    // draw normal map on the plane
+    GLCall(glDepthMask(GL_FALSE));
+
+    // cube-map
+    // --------
+    GLCall(glUseProgram(cubeMapShader));
+    GLCall(glBindVertexArray(cubemapVao));
+
+    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f) * rotation; // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
+
+    GLCall(GLuint viewId = glGetUniformLocation(cubeMapShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+
+    GLCall(GLuint proId = glGetUniformLocation(cubeMapShader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+
+    //GLCall(GLuint location = glGetUniformLocation(cubeMapShader, "viewPos"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+
+    GLCall(GLuint location = glGetUniformLocation(cubeMapShader, "skybox"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+
+    GLCall(glActiveTexture(GL_TEXTURE0));
+    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, cubemapVertices.size()));
+
+
+    // draw tessellation plane
     // ----------------------------
-    
+    GLCall(glDepthMask(GL_TRUE));
+
     GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     glClearColor(0, 0, 0, 0);
 
     /*MVP into vertex shader*/
-    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    /*model = glm::translate(model, glm::vec3(10.0f, -20.0f, -80.0f));
-    model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-    GLCall(glUseProgram(planeShader));
-
-    GLCall(GLuint modelId = glGetUniformLocation(planeShader, "model"));
-    assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
-
-    GLCall(GLuint viewId = glGetUniformLocation(planeShader, "view"));
-    assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
-
-    GLCall(GLuint proId = glGetUniformLocation(planeShader, "projection"));
-
-    GLCall(GLuint location = glGetUniformLocation(planeShader, "planeTexture"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    GLCall(glBindVertexArray(planeVao));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));*/
-    //GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
-    //GLCall(glDrawArrays(GL_PATCHES, 0, 4));
+    //glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    //glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    //glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
+    
 
     GLCall(glUseProgram(tessShader));
 
@@ -211,15 +225,15 @@ void myDisplay()
     assert(modelId != -1);
     GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
 
-    GLCall(GLuint viewId = glGetUniformLocation(tessShader, "view"));
+    GLCall(viewId = glGetUniformLocation(tessShader, "view"));
     assert(viewId != -1);
     GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
 
-    GLCall(GLuint proId = glGetUniformLocation(tessShader, "projection"));
+    GLCall(proId = glGetUniformLocation(tessShader, "projection"));
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    GLCall(GLuint location = glGetUniformLocation(tessShader, "heightMap"));
+    GLCall(location = glGetUniformLocation(tessShader, "heightMap"));
     assert(location != -1);
     GLCall(glUniform1i(location, 1));
     glActiveTexture(GL_TEXTURE1);
@@ -230,19 +244,19 @@ void myDisplay()
     assert(location != -1);
     GLCall(glUniform1ui(location, sinDegree));
 
-    GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
+    /*GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
     assert(location != -1);
-    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));*/
 
     //GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
     //assert(location != -1);
     //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
     //texture
-    GLCall(location = glGetUniformLocation(tessShader, "normalMap"));
+    /*GLCall(location = glGetUniformLocation(tessShader, "normalMap"));
     assert(location != -1);
     GLCall(glUniform1i(location, 0));
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, normalTexture);
+    glBindTexture(GL_TEXTURE_2D, normalTexture);*/
 
     GLCall(glBindVertexArray(VAO));
     GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
@@ -387,6 +401,24 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &geometryVertexbuffer));
     GLCall(glNamedBufferStorage(geometryVertexbuffer, geometryVertices.size() * sizeof(geometryVertices[0]), &geometryVertices[0], 0));
 
+    // cube-map vertices
+    // -----------------
+
+    readSuccess = cubemap.LoadFromFileObj("res/texture/cube.obj", true, outString);
+    assert(readSuccess);
+
+    for (unsigned int i = 0; i < cubemap.NF(); i++)
+    {
+        //vetices
+        cy::TriMesh::TriFace face = cubemap.F(i);
+        cubemapVertices.push_back(glm::vec3(cubemap.V(face.v[0]).x, cubemap.V(face.v[0]).y, cubemap.V(face.v[0]).z));
+        cubemapVertices.push_back(glm::vec3(cubemap.V(face.v[1]).x, cubemap.V(face.v[1]).y, cubemap.V(face.v[1]).z));
+        cubemapVertices.push_back(glm::vec3(cubemap.V(face.v[2]).x, cubemap.V(face.v[2]).y, cubemap.V(face.v[2]).z));
+
+    }
+
+    GLCall(glCreateBuffers(1, &cubemapVertexbuffer));
+    GLCall(glNamedBufferStorage(cubemapVertexbuffer, cubemapVertices.size() * sizeof(cubemapVertices[0]), &cubemapVertices[0], 0));
 }
 
 
@@ -424,6 +456,17 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayAttribBinding(geometryVao, pos, vertexBindingIndex));
     GLCall(glVertexArrayBindingDivisor(geometryVao, vertexBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(geometryVao, pos));
+
+    // create cube-map vertex array object
+   // -----------------------------------
+    GLCall(glCreateVertexArrays(1, &cubemapVao));
+
+    //vertex buffer
+    GLCall(glVertexArrayVertexBuffer(cubemapVao, vertexBindingIndex, cubemapVertexbuffer, 0, sizeof(glm::vec3)));
+    GLCall(glVertexArrayAttribFormat(cubemapVao, pos, 3, GL_FLOAT, GL_FALSE, 0));
+    GLCall(glVertexArrayAttribBinding(cubemapVao, pos, vertexBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(cubemapVao, vertexBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(cubemapVao, pos));
 
 }
 
@@ -468,6 +511,34 @@ static void CreateTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+    // cube-map texture
+   // ----------------
+    GLCall(glGenTextures(1, &cubeMapTexture));
+    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
+
+    std::vector<std::string> faces
+    {
+        "res/texture/cubemap_posx.png",
+        "res/texture/cubemap_negx.png",
+        "res/texture/cubemap_posy.png",
+        "res/texture/cubemap_negy.png",
+        "res/texture/cubemap_posz.png",
+        "res/texture/cubemap_negz.png"
+    };
+
+    for (unsigned int i = 0; i < faces.size(); i++) {
+
+        const char* c = faces[i].c_str();
+        std::vector<unsigned char> cubeimage = decodeTwoSteps(c, cubeimage);
+        assert(&specimage);
+        GLCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &cubeimage[0]));
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
 void Framebuffer() {
@@ -522,6 +593,10 @@ static void LoadShaders() {
     sourceWithG = ParseShaderWithGeometry("res/shaders/Tessellation.shader");
     tessShader = CreateShaderWithGeometry(false, sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource, sourceWithG.TessControlSource, sourceWithG.TessEvaluationSource);
     assert(tessShader != -1);
+
+    source = ParseShader("res/shaders/CubeMap.shader");
+    cubeMapShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(cubeMapShader != -1);
     
 }
 
@@ -533,26 +608,20 @@ void CreateBufferTest()
         // 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
         //-0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
 
+
+
         // // positions          // texture coords 
-        //- 20.0f, 20.0f,  0.0f,  0.0f, 20.0f,
-        //-20.0f, -20.0f, 0.0f,  0.0f, 0.0f,
-        // 20.0f, -20.0, 0.0f,  20.0f, 0.0f,
-        // 20.0f, 20.0f,  0.0f,  20.0f, 20.0f
+        //- 20.0f, 0.0f,  20.0f,  0.0f, 20.0f,
+        //-20.0f, 0.0f, -20.0f,  0.0f, 0.0f,
+        // 20.0f, 0.0f, -20.0f,  20.0f, 0.0f,
+        // 20.0f, 0.0f,  20.0f,  20.0f, 20.0f
 
          // positions          // texture coords 
-        - 20.0f, 0.0f,  20.0f,  0.0f, 20.0f,
-        -20.0f, 0.0f, -20.0f,  0.0f, 0.0f,
-         20.0f, 0.0f, -20.0f,  20.0f, 0.0f,
-         20.0f, 0.0f,  20.0f,  20.0f, 20.0f
+        - 20.0f, -10.0f,  -40.0f,  0.0f, 20.0f,
+        -20.0f, -10.0f, -80.0f,  0.0f, 0.0f,
+         20.0f, -10.0f, -80.0f,  20.0f, 0.0f,
+         20.0f, -10.0f,  -40.0f,  20.0f, 20.0f
 
-        // // positions          // texture coords 
-        //- 20.0f, 20.0f,  0.0f,  0.0f, 1.0f,
-        //-20.0f, -20.0f, 0.0f,  0.0f, 0.0f,
-        // 20.0f, -20.0, 0.0f,  1.0f, 0.0f,
-        // 20.0f, 20.0f,  0.0f,  1.0f, 1.0f
-
-        //-20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
-         //20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
     };
     
     glGenBuffers(1, &VBO);
