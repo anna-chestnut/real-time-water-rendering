@@ -154,6 +154,7 @@ in vec2 teTexCoord;
 
 in vec3 tePosition;
 
+uniform samplerCube skybox;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 uniform sampler2D normalMap;
@@ -162,13 +163,21 @@ void main()
 {
 
     vec3 col = vec3(0, 1, 1);
+    vec3 viewDir = normalize(viewPos - tePosition);
 
-    vec3 ambient = 0.1 * col;
+    vec3 I = normalize(tePosition - viewPos);
+    vec3 R = reflect(I, vec3(0,1,0));
+    float reflectiveFactor = dot(viewDir, vec3(0, 1, 0));
+    //FragColor = vec4(texture(skybox, R).rgb, 1.0);
+    col = mix(texture(skybox, R).rgb, texture(skybox, R).rgb, reflectiveFactor) + vec3(0, 1, 1);
 
-    //FragColor = vec4(fColor, 1.0);
-    vec3 normal = texture(normalMap, teTexCoord).rgb;
+    vec3 ambient = 0.05 * col;
+
+    //vec3 normal = texture(normalMap, teTexCoord).rgb;
     // transform normal vector to range [-1,1]
-    normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
+    //normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
+
+    vec3 normal = vec3(0, 1, 0);
 
     // diffuse 
     vec3 lightDir = normalize(lightPos - tePosition);
@@ -176,13 +185,13 @@ void main()
     vec3 diffuse = diff * col;
 
     // specular
-    vec3 viewDir = normalize(viewPos - tePosition);
+   
     vec3 reflectDir = reflect(-lightDir, normal);
     float specular = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 
-    vec3 result = (diffuse);
+    vec3 result = (ambient + diffuse + specular);
 
-    FragColor = vec4(col, 1.0);
+    FragColor = vec4(result, 1.0);
 
     /*float h = (Height) / 10.0f;
     FragColor = vec4(h, 0.0, 0.0, 1.0);*/

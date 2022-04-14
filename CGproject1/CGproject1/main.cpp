@@ -244,13 +244,19 @@ void myDisplay()
     assert(location != -1);
     GLCall(glUniform1ui(location, sinDegree));
 
-    /*GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
+    GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
     assert(location != -1);
-    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));*/
+    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-    //GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+    GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+
+    GLCall(location = glGetUniformLocation(tessShader, "skybox"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+    GLCall(glActiveTexture(GL_TEXTURE0));
+    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
     //texture
     /*GLCall(location = glGetUniformLocation(tessShader, "normalMap"));
     assert(location != -1);
