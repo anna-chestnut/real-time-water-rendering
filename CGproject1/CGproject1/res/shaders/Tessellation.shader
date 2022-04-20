@@ -82,8 +82,8 @@ void main()
     /*gl_Position = (gl_TessCoord.x * gl_in[0].gl_Position +
         gl_TessCoord.y * gl_in[1].gl_Position +
         gl_TessCoord.z * gl_in[2].gl_Position);*/
-    Normal_GS_in = interpolate3D(Normal_TE_in[0], Normal_TE_in[1], Normal_TE_in[2]);
-    Normal_GS_in = normalize(Normal_GS_in);
+    //Normal_GS_in = interpolate3D(Normal_TE_in[0], Normal_TE_in[1], Normal_TE_in[2]);
+    //Normal_GS_in = normalize(Normal_GS_in);
 
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
@@ -102,15 +102,28 @@ void main()
 
     //heightColor = texture(heightMap, texCoord).rgb;
     vec2 offset1 = vec2(0.8, 0.4) * degree * 0.001;
-    vec2 offset2 = vec2(0.6, 1.1) * degree * 0.001;
-    float hight1 = texture(heightMap, teTexCoord + offset1).y * 1;
-    float hight2 = texture(heightMap, teTexCoord + offset2).y * 1;
-    Height = hight1 + hight2;
+    //vec2 offset2 = vec2(0.6, 1.1) * degree * 0.001;
+    vec2 vertexPos = teTexCoord + offset1;
+    float hight1 = texture(heightMap, vertexPos).y * 1;
+    //float hight2 = texture(heightMap, teTexCoord + offset2).y * 1;
+    Height = hight1;// hight1 + hight2;
     //Height = texture(heightMap, teTexCoord).y * 10.0;// * 64.0 - 16.0
-    //Height = Height + sin(degree);
+    
     vec4 inter = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
     vec4 newPos = vec4(inter.x, inter.y + Height, inter.z, 1.0);
-   // newPos = vec4(newPos.x, newPos.y * degree, newPos.z, newPos.w);
+
+    float xOffsetHeight = texture(heightMap, vertexPos + vec2(0.001, 0)).y;
+    float yOffsetHeight = texture(heightMap, vertexPos + vec2(0, 0.001)).y;
+
+    vec3 modelXOffset = vec3(inter.x, inter.y + xOffsetHeight, inter.z);
+    vec3 modelYOffset = vec3(inter.x, inter.y + yOffsetHeight, inter.z);
+
+    vec3 x_vector = modelXOffset - newPos.xyz;
+    vec3 y_vector = modelYOffset - newPos.xyz;
+
+    Normal_GS_in = cross(x_vector, y_vector);
+    Normal_GS_in = normalize(mat3(transpose(inverse(view * model))) * Normal_GS_in);
+   
     gl_Position = projection * view * model * newPos;
     tePosition = vec3(model * newPos).xyz;
 }
@@ -193,7 +206,7 @@ void main()
     // transform normal vector to range [-1,1]
     //normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
 
-    vec3 normal = vec3(0, 1, 0); //Normal_FS_in;// vec3(0, 1, 0);
+    vec3 normal = Normal_FS_in; //Normal_FS_in;// vec3(0, 1, 0);
 
     // diffuse 
     vec3 lightDir = normalize(lightPos - tePosition);
