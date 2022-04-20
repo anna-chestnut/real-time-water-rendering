@@ -5,7 +5,7 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec2 aTex;
 
 out vec2 TexCoord;
-out vec3 Normal_TS_in;
+//out vec3 Normal_TS_in;
 
 void main()
 {
@@ -13,7 +13,7 @@ void main()
     //gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
     gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
     TexCoord = aTex;
-    Normal_TS_in = vec3(0, 1, 0);
+    //Normal_TS_in = vec3(0, 1, 0);
 }
 
 
@@ -26,9 +26,9 @@ layout(vertices = 4) out;
 //uniform mat4 view;
 
 in vec2 TexCoord[];
-in vec3 Normal_TS_in[];
+//in vec3 Normal_TS_in[];
 out vec2 TextureCoord[];
-out vec3 Normal_TE_in[];
+//out vec3 Normal_TE_in[];
 
 void main()
 {
@@ -43,7 +43,7 @@ void main()
 
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
     TextureCoord[gl_InvocationID] = TexCoord[gl_InvocationID];
-    Normal_TE_in[gl_InvocationID] = Normal_TS_in[gl_InvocationID];
+    //Normal_TE_in[gl_InvocationID] = Normal_TS_in[gl_InvocationID];
 }
 
 
@@ -58,12 +58,12 @@ uniform mat4 projection;
 uniform unsigned int degree;
 
 in vec2 TextureCoord[];
-in vec3 Normal_TE_in[];
+//in vec3 Normal_TE_in[];
 
-out float Height;
+//out float Height;
 out vec3 tePosition;
 out vec2 teTexCoord;
-out vec3 Normal_GS_in;
+out vec3 Normal_FS_in;
 
 vec4 interpolate(vec4 v0, vec4 v1, vec4 v2, vec4 v3) {
 
@@ -106,71 +106,79 @@ void main()
     vec2 vertexPos = teTexCoord + offset1;
     float hight1 = texture(heightMap, vertexPos).y * 1;
     //float hight2 = texture(heightMap, teTexCoord + offset2).y * 1;
-    Height = hight1;// hight1 + hight2;
+    float Height = hight1;// hight1 + hight2;
     //Height = texture(heightMap, teTexCoord).y * 10.0;// * 64.0 - 16.0
     
     vec4 inter = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
     vec4 newPos = vec4(inter.x, inter.y + Height, inter.z, 1.0);
 
-    float xOffsetHeight = texture(heightMap, vertexPos + vec2(0.001, 0)).y;
-    float yOffsetHeight = texture(heightMap, vertexPos + vec2(0, 0.001)).y;
+    vec3 texCoord_origin = vec3(0, Height, 0);
+
+    vec2 offset_x = vec2(0.01, 0) * degree * 0.001;
+    vec2 offset_y = vec2(0, 0.01) * degree * 0.001;
+    
+    vec3 texCoord_x = vec3(offset_x.x, texture(heightMap, vertexPos + offset_x).y, 0);
+    vec3 texCoord_y = vec3(0, texture(heightMap, vertexPos + offset_y).y, offset_y.y);
+
+    float xOffsetHeight = texture(heightMap, vertexPos + offset_x).y;
+    float yOffsetHeight = texture(heightMap, vertexPos + offset_y).y;
 
     vec3 modelXOffset = vec3(inter.x, inter.y + xOffsetHeight, inter.z);
     vec3 modelYOffset = vec3(inter.x, inter.y + yOffsetHeight, inter.z);
 
-    vec3 x_vector = modelXOffset - newPos.xyz;
-    vec3 y_vector = modelYOffset - newPos.xyz;
+    vec3 x_vector = texCoord_x - texCoord_origin;
+    vec3 y_vector = texCoord_y - texCoord_origin;
 
-    Normal_GS_in = cross(x_vector, y_vector);
-    Normal_GS_in = normalize(mat3(transpose(inverse(view * model))) * Normal_GS_in);
+    Normal_FS_in = cross(x_vector, y_vector);// cross(x_vector, y_vector);
+    Normal_FS_in = normalize(mat3(transpose(inverse(view * model))) * Normal_FS_in);
    
     gl_Position = projection * view * model * newPos;
     tePosition = vec3(model * newPos).xyz;
 }
 
 
-#shader geometry
-#version 330 core
-
-layout(triangles) in;
-layout(line_strip, max_vertices = 3) out;
-
-//in vec3 tePosition[3];
-//out vec3 gPosition;
-
-in vec2 teTexCoord[3];
-in vec3 Normal_GS_in[3];
-out vec2 gTexCoord;
-out vec3 Normal_FS_in;
-
-void main() {
-    //build_house(gl_in[0].gl_Position);
-
-    gl_Position = gl_in[0].gl_Position;
-    gTexCoord = teTexCoord[0];
-    //gPosition = tePosition[0];
-    Normal_FS_in = Normal_GS_in[0];
-    EmitVertex();
-
-    gl_Position = gl_in[1].gl_Position;
-    gTexCoord = teTexCoord[1];
-    Normal_FS_in = Normal_GS_in[1];
-    //gPosition = tePosition[1];
-    EmitVertex();
-
-    gl_Position = gl_in[2].gl_Position;
-    gTexCoord = teTexCoord[2];
-    Normal_FS_in = Normal_GS_in[2];
-    //gPosition = tePosition[2];
-    EmitVertex();
-
-    //gl_Position = gl_in[0].gl_Position;
-    //gTexCoord = teTexCoord[0];
-    //EmitVertex();
-
-    EndPrimitive();
-
-}
+//#shader geometry
+//#version 330 core
+//
+//layout(triangles) in;
+//layout(line_strip, max_vertices = 3) out;
+//
+////in vec3 tePosition[3];
+////out vec3 gPosition;
+//
+//in vec2 teTexCoord[3];
+//in vec3 Normal_GS_in[3];
+//out vec2 gTexCoord;
+//out vec3 Normal_FS_in;
+//
+//void main() {
+//    //build_house(gl_in[0].gl_Position);
+//
+//    gl_Position = gl_in[0].gl_Position;
+//    gTexCoord = teTexCoord[0];
+//    //gPosition = tePosition[0];
+//    Normal_FS_in = Normal_GS_in[0];
+//    EmitVertex();
+//
+//    gl_Position = gl_in[1].gl_Position;
+//    gTexCoord = teTexCoord[1];
+//    Normal_FS_in = Normal_GS_in[1];
+//    //gPosition = tePosition[1];
+//    EmitVertex();
+//
+//    gl_Position = gl_in[2].gl_Position;
+//    gTexCoord = teTexCoord[2];
+//    Normal_FS_in = Normal_GS_in[2];
+//    //gPosition = tePosition[2];
+//    EmitVertex();
+//
+//    //gl_Position = gl_in[0].gl_Position;
+//    //gTexCoord = teTexCoord[0];
+//    //EmitVertex();
+//
+//    EndPrimitive();
+//
+//}
 
 
 #shader fragment
@@ -178,9 +186,10 @@ void main() {
 out vec4 FragColor;
 
 //in float Height;
-in vec2 gTexCoord;
+//in vec2 gTexCoord;
 in vec2 teTexCoord;
 in vec3 Normal_FS_in;
+//in vec3 Normal_GS_in;
 in vec3 tePosition;
 
 uniform samplerCube skybox;
@@ -198,9 +207,9 @@ void main()
     vec3 R = reflect(I, vec3(0,1,0));
     float reflectiveFactor = dot(viewDir, Normal_FS_in);
     //FragColor = vec4(texture(skybox, R).rgb, 1.0);
-    col = mix(texture(skybox, R).rgb, texture(skybox, R).rgb, reflectiveFactor) + vec3(0, 1, 1);
+    col = mix(texture(skybox, R).rgb, texture(skybox, R).rgb, reflectiveFactor);//mix(texture(skybox, R).rgb, vec3(0, 1, 1), reflectiveFactor);
 
-    vec3 ambient = 0.05 * col;
+    vec3 ambient = col;
 
     //vec3 normal = texture(normalMap, teTexCoord).rgb;
     // transform normal vector to range [-1,1]
