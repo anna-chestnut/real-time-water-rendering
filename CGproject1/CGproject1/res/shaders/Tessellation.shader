@@ -201,9 +201,9 @@ void main()
     vec3 I = normalize(tePosition - viewPos);
     vec3 R = reflect(I, normal);
     float reflectiveFactor = dot(viewDir, normal);
-    reflectiveFactor = pow(reflectiveFactor, 5.0);
+    //reflectiveFactor = pow(reflectiveFactor, 5.0);
     //FragColor = vec4(texture(skybox, R).rgb, 1.0);
-    col = mix(texture(skybox, R).rgb, col, reflectiveFactor);//mix(texture(skybox, R).rgb, vec3(0, 1, 1), reflectiveFactor);
+    col = mix(texture(skybox, R).rgb, col, reflectiveFactor) ;//mix(texture(skybox, R).rgb, vec3(0, 1, 1), reflectiveFactor);
 
     vec3 ambient = col;
 

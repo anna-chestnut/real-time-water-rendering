@@ -42,9 +42,10 @@ TriMesh cubemap;
 GLuint vertexbuffer;
 GLuint normalbuffer;
 GLuint texturebuffer;
-GLuint framebuffer = 0;
+GLuint reflect_fb = 0;
+GLuint refract_fb = 0;
 GLuint depthbuffer;
-GLuint vao;
+GLuint teapotVao;
 // plane
 GLuint planeVao;
 GLuint planeVertexbuffer;
@@ -57,8 +58,10 @@ GLuint geometryTexturebuffer;
 GLuint cubemapVertexbuffer;
 GLuint cubemapVao;
 GLuint cubeMapTexture;
-GLuint renderedTexture; 
+GLuint reflectTexture;
+GLuint refractTexture;
 GLuint normalTexture;
+GLuint teapotTexure;
 GLuint displacementTexture;
 GLint originFB;
 
@@ -166,6 +169,7 @@ void myMouse(int button, int state, int x, int y);
 void mySpecialKeyboard(int key, int x, int y);
 void drag2(int x, int y);
 void timer(int);
+void renderScene(const unsigned int i_shader);
 
 void myDisplay()
 {
@@ -193,10 +197,6 @@ void myDisplay()
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    //GLCall(GLuint location = glGetUniformLocation(cubeMapShader, "viewPos"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
-
     GLCall(GLuint location = glGetUniformLocation(cubeMapShader, "skybox"));
     assert(location != -1);
     GLCall(glUniform1i(location, 0));
@@ -205,10 +205,23 @@ void myDisplay()
     GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, cubemapVertices.size()));
 
+    // draw teapot
+    // -----------
+    GLCall(glDepthMask(GL_TRUE));
+    GLCall(glUseProgram(shader));
+
+    GLCall(viewId = glGetUniformLocation(shader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+
+    GLCall(proId = glGetUniformLocation(shader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+
+    renderScene(shader);
 
     // draw tessellation plane
     // ----------------------------
-    GLCall(glDepthMask(GL_TRUE));
 
     GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     glClearColor(0, 0, 0, 0);
@@ -267,58 +280,81 @@ void myDisplay()
     GLCall(glBindVertexArray(VAO));
     GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
     GLCall(glDrawArrays(GL_PATCHES, 0, 4));
-
-
-    //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
-
-    // use geometry shader
-    // -------------------
-
-    //if (showTriangle) {
-    //    GLCall(glUseProgram(geometryShader));
-
-    //    GLCall(modelId = glGetUniformLocation(geometryShader, "model"));
-    //    assert(modelId != -1);
-    //    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
-
-    //    GLCall(viewId = glGetUniformLocation(geometryShader, "view"));
-    //    assert(viewId != -1);
-    //    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
-
-    //    GLCall(proId = glGetUniformLocation(geometryShader, "projection"));
-    //    assert(proId != -1);
-    //    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
-
-    //    GLCall(location = glGetUniformLocation(geometryShader, "heightMap"));
-    //    assert(location != -1);
-    //    GLCall(glUniform1i(location, 1));
-    //    glActiveTexture(GL_TEXTURE1);
-    //    glBindTexture(GL_TEXTURE_2D, displacementTexture);
-
-
-    //    GLCall(GLuint location = glGetUniformLocation(geometryShader, "lightPos"));
-    //    assert(location != -1);
-    //    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
-
-    //    GLCall(location = glGetUniformLocation(geometryShader, "viewPos"));
-    //    assert(location != -1);
-    //    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
-    //    //texture
-    //    GLCall(location = glGetUniformLocation(geometryShader, "normalMap"));
-    //    assert(location != -1);
-    //    GLCall(glUniform1i(location, 0));
-    //    glActiveTexture(GL_TEXTURE0);
-    //    glBindTexture(GL_TEXTURE_2D, normalTexture);
-
-    //    GLCall(glBindVertexArray(VAO));
-    //    GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
-    //    GLCall(glDrawArrays(GL_PATCHES, 0, 4));
-
-    //}
+    
     glutSwapBuffers();
 
 }
 
+void renderScene(const unsigned int i_shader)
+{
+    // teapot
+    // ------
+    //glm::mat4 view = camera.GetViewMatrix();
+    //glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 teapot_model = rotation * glm::mat4(1.0f);
+    teapot_model = glm::translate(teapot_model, glm::vec3(10.0f, -5.0f, -80.0f));
+    teapot_model = glm::rotate(teapot_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //teapot_model = glm::rotate(teapot_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //teapot_model = glm::rotate(teapot_model, glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    GLCall(GLuint modelId = glGetUniformLocation(i_shader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &teapot_model[0][0]));
+
+    GLCall(GLuint location = glGetUniformLocation(i_shader, "ambientColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Ka[0], tm.M(0).Ka[1], tm.M(0).Ka[2]));
+
+    GLCall(location = glGetUniformLocation(i_shader, "diffuseColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Kd[0], tm.M(0).Kd[1], tm.M(0).Kd[2]));
+
+    GLCall(location = glGetUniformLocation(i_shader, "specularColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Ks[0], tm.M(0).Ks[1], tm.M(0).Ks[2]));
+
+    GLCall(location = glGetUniformLocation(i_shader, "lightPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+
+    GLCall(location = glGetUniformLocation(i_shader, "specularExponent"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).Ns));
+
+    GLCall(location = glGetUniformLocation(i_shader, "specularStrength"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).illum));
+
+    //texture
+    GLCall(location = glGetUniformLocation(i_shader, "tex"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, teapotTexure);
+
+    //specular texture
+    GLCall(location = glGetUniformLocation(i_shader, "specTex"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 1));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, normalTexture);
+
+    GLCall(glBindVertexArray(teapotVao));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
+
+    // draw plane
+    // ----------
+    /*GLCall(glBindVertexArray(planeVao));
+    glm::mat4 plane_model = rotation * glm::mat4(1.0f);
+    GLCall(modelId = glGetUniformLocation(i_shader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &plane_model[0][0]));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));*/
+
+}
 
 static void CreateVertexBuffer()
 {
@@ -347,11 +383,11 @@ static void CreateVertexBuffer()
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[1]).x, tm.VN(face.v[1]).y, tm.VN(face.v[1]).z));
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[2]).x, tm.VN(face.v[2]).y, tm.VN(face.v[2]).z));
 
-        ////texture vertices
-        //face = tm.FT(i);
-        //verticesTexture.push_back(glm::vec3(tm.VT(face.v[0]).x, tm.VT(face.v[0]).y, tm.VT(face.v[0]).z));
-        //verticesTexture.push_back(glm::vec3(tm.VT(face.v[1]).x, tm.VT(face.v[1]).y, tm.VT(face.v[1]).z));
-        //verticesTexture.push_back(glm::vec3(tm.VT(face.v[2]).x, tm.VT(face.v[2]).y, tm.VT(face.v[2]).z));
+        //texture vertices
+        face = tm.FT(i);
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[0]).x, tm.VT(face.v[0]).y, tm.VT(face.v[0]).z));
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[1]).x, tm.VT(face.v[1]).y, tm.VT(face.v[1]).z));
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[2]).x, tm.VT(face.v[2]).y, tm.VT(face.v[2]).z));
     }
 
     numberOfV = vertices.size();
@@ -363,6 +399,10 @@ static void CreateVertexBuffer()
     //normal buffer
     GLCall(glCreateBuffers(1, &normalbuffer));
     GLCall(glNamedBufferStorage(normalbuffer, verticesNormal.size() * sizeof(verticesNormal[0]), &verticesNormal[0], 0));
+
+    //normal buffer
+    GLCall(glCreateBuffers(1, &texturebuffer));
+    GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
 
     //float allplaneVertices[] = {
     //    // positions          // texture coords 
@@ -434,6 +474,35 @@ static void CreateVertexArrayObject()
     aNormal = 1; // glGetAttribLocation(shader, "aNormal");
     aTexCoord = 2; // layout(location = 2) in vec2 aTexCoord;
 
+    // create teapot vertex array object
+    // ---------------------------------
+    GLCall(glCreateVertexArrays(1, &teapotVao));
+
+    pos = 0; // glGetAttribLocation(shader, "pos");
+    aNormal = 1; // glGetAttribLocation(shader, "aNormal");
+    aTexCoord = 2; // layout(location = 2) in vec2 aTexCoord;
+
+    /*bind vertexbuffer to vao*/
+    GLCall(glVertexArrayVertexBuffer(teapotVao, vertexBindingIndex, vertexbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.V(0)
+    GLCall(glVertexArrayAttribFormat(teapotVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          //sizeof(tm.V(0)
+    GLCall(glVertexArrayAttribBinding(teapotVao, pos, vertexBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(teapotVao, vertexBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(teapotVao, pos));
+
+    /*bind normalbuffer to teapotVao*/
+    GLCall(glVertexArrayVertexBuffer(teapotVao, normalBindingIndex, normalbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribFormat(teapotVao, aNormal, 3, GL_FLOAT, GL_FALSE, 0));                      //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribBinding(teapotVao, aNormal, normalBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(teapotVao, normalBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(teapotVao, aNormal));
+
+    /*bind texturebuffer to teapotVao*/
+    GLCall(glVertexArrayVertexBuffer(teapotVao, textureBindingIndex, texturebuffer, 0, sizeof(glm::vec3))); //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribFormat(teapotVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                      //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribBinding(teapotVao, aTexCoord, textureBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(teapotVao, textureBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(teapotVao, aTexCoord));
+
     // create plane vertex array object
     // -------------------------------
     GLCall(glCreateVertexArrays(1, &planeVao));
@@ -479,13 +548,29 @@ static void CreateVertexArrayObject()
 
 static void CreateTexture() {
 
+    GLCall(glGenTextures(1, &teapotTexure));
+    GLCall(glBindTexture(GL_TEXTURE_2D, teapotTexure));
+
+    image = decodeTwoSteps("res/texture/brick.png", image);
+    assert(&image);
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
+    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+
+    // set texture filtering parameters
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
     // normal texture
     // --------------
     GLCall(glGenTextures(1, &normalTexture));
     GLCall(glBindTexture(GL_TEXTURE_2D, normalTexture));
 
     // generate specular texture
-    specimage = decodeTwoSteps("res/texture/teapot_normal.png", specimage);
+    specimage = decodeTwoSteps("res/texture/brick-specular.png", specimage);
     assert(&specimage);
     GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
     GLCall(glGenerateMipmap(GL_TEXTURE_2D));
@@ -547,18 +632,49 @@ static void CreateTexture() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
-void Framebuffer() {
+void reflectFramebuffer() {
 
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glGenFramebuffers(1, &reflect_fb);
+    glBindFramebuffer(GL_FRAMEBUFFER, reflect_fb);
     // create a color attachment texture
     //unsigned int textureColorbuffer;
-    glGenTextures(1, &renderedTexture);
-    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+    glGenTextures(1, &reflectTexture);
+    glBindTexture(GL_TEXTURE_2D, reflectTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, reflectTexture, 0);
+
+    GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+    GLCall(glDrawBuffers(1, drawBuffers));
+
+    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+
+    assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+}
+
+void refractFramebuffer() {
+
+    glGenFramebuffers(1, &refract_fb);
+    glBindFramebuffer(GL_FRAMEBUFFER, refract_fb);
+    // create a color attachment texture
+    //unsigned int textureColorbuffer;
+    glGenTextures(1, &refractTexture);
+    glBindTexture(GL_TEXTURE_2D, refractTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, refractTexture, 0);
 
     GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
     GLCall(glDrawBuffers(1, drawBuffers));
@@ -783,7 +899,8 @@ int main(int argc, char** argv)
 
     CreateVertexArrayObject();
 
-    //Framebuffer();
+    reflectFramebuffer();
+    refractFramebuffer();
     
     CreateTexture();
     Perlin();
