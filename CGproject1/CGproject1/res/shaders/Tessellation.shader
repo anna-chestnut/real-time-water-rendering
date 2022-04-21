@@ -104,9 +104,9 @@ void main()
     vec2 offset1 = vec2(0.8, 0.4) * degree * 0.001;
     vec2 offset2 = vec2(0.6, 1.1) * degree * 0.001;
     vec2 vertexPos = teTexCoord + offset1;
-    float hight1 = texture(heightMap, vertexPos).y * 1;
-    float hight2 = texture(heightMap, teTexCoord + offset2).y * 1;
-    float Height = hight1 + hight2;;// hight1 + hight2;
+    float hight1 = texture(heightMap, teTexCoord + offset1).z * 1;
+    float hight2 = texture(heightMap, teTexCoord + offset2).z * 1;
+    float Height = hight1 + hight2;// hight1 + hight2;
     //Height = texture(heightMap, teTexCoord).y * 10.0;// * 64.0 - 16.0
     
     vec4 inter = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
@@ -114,11 +114,19 @@ void main()
 
     vec3 texCoord_origin = vec3(0, Height, 0);
 
-    vec2 offset_x = vec2(0.01, 0) * degree * 0.001;
-    vec2 offset_y = vec2(0, 0.01) * degree * 0.001;
+    vec2 teTexCoord_x = teTexCoord + vec2(0.01, 0);
+    vec2 teTexCoord_y = teTexCoord + vec2(0, 0.01);
+
+    hight1 = texture(heightMap, teTexCoord_x + offset1).z * 1;
+    hight2 = texture(heightMap, teTexCoord_x + offset2).z * 1;
+    float Height_x = hight1 + hight2;
+
+    hight1 = texture(heightMap, teTexCoord_y + offset1).z * 1;
+    hight2 = texture(heightMap, teTexCoord_y + offset2).z * 1;
+    float Height_y = hight1 + hight2;
     
-    vec3 texCoord_x = vec3(offset_x.x, texture(heightMap, vertexPos + offset_x).y, 0);
-    vec3 texCoord_y = vec3(0, texture(heightMap, vertexPos + offset_y).y, offset_y.y);
+    vec3 texCoord_x = vec3(teTexCoord_x.x, texture(heightMap, teTexCoord_x + Height_x).y, 0);
+    vec3 texCoord_y = vec3(0, texture(heightMap, teTexCoord_y + Height_y).y, teTexCoord_y.y);
 
     vec3 x_vector = texCoord_x - texCoord_origin;
     vec3 y_vector = texCoord_y - texCoord_origin;
@@ -221,9 +229,9 @@ void main()
     // specular
    
     vec3 reflectDir = reflect(-lightDir, normal);
-    float specular = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    float specular = pow(max(dot(viewDir, reflectDir), 0.0), 64);
 
-    vec3 result = (ambient + diffuse + specular);
+    vec3 result = (ambient + diffuse );
 
     FragColor = vec4(result, 1.0);
 

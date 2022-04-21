@@ -220,11 +220,43 @@ void myDisplay()
 
     renderScene(shader);
 
+    // Set frame buffer target & render teapot
+    // ---------------------------------------
+    //GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, reflectTexture));
+    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
+    //GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+    GLCall(glUseProgram(shader));
+
+    // teapot reflect texture
+    // ----------------------
+    glm::mat4 mReflection = glm::mat4
+    (
+        1.0, 0.0, 0.0, 0.0,
+        0.0, -1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        10.0, -20.0, 0.0, 1.0
+    );
+
+    glm::mat4 teapot_r_view = camera.GetViewMatrix() * mReflection;
+    glm::mat4 teapot_r_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+    GLCall(viewId = glGetUniformLocation(shader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &teapot_r_view[0][0]));
+
+    GLCall(proId = glGetUniformLocation(shader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &teapot_r_projection[0][0]));
+
+    //Set frame buffer target to the back buffer
+    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
+    //glDisable(GL_DEPTH_TEST);
+
     // draw tessellation plane
     // ----------------------------
 
-    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
-    glClearColor(0, 0, 0, 0);
+    //GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
 
     /*MVP into vertex shader*/
     //glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
@@ -257,9 +289,9 @@ void myDisplay()
     assert(location != -1);
     GLCall(glUniform1ui(location, sinDegree));
 
-    GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    //GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
     GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
     assert(location != -1);
@@ -739,10 +771,10 @@ void CreateBufferTest()
         // 20.0f, 0.0f,  20.0f,  20.0f, 20.0f
 
          // positions          // texture coords 
-        - 20.0f, -10.0f,  -40.0f,  0.0f, 20.0f,
+        - 20.0f, -10.0f,  -40.0f,  0.0f, 40.0f,
         -20.0f, -10.0f, -80.0f,  0.0f, 0.0f,
-         20.0f, -10.0f, -80.0f,  20.0f, 0.0f,
-         20.0f, -10.0f,  -40.0f,  20.0f, 20.0f
+         20.0f, -10.0f, -80.0f,  40.0f, 0.0f,
+         20.0f, -10.0f,  -40.0f,  40.0f, 40.0f
 
     };
     
@@ -835,7 +867,7 @@ int loadPPM(const char* filename) {
 void Perlin() {
 
     // Define the size of the image
-    unsigned int width = 256, height = 256;//600 450
+    unsigned int width = 800, height = 800;//600 450
 
     // Create an empty PPM image
     ppm image(width, height);
