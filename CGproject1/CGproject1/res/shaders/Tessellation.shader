@@ -102,11 +102,11 @@ void main()
 
     //heightColor = texture(heightMap, texCoord).rgb;
     vec2 offset1 = vec2(0.8, 0.4) * degree * 0.001;
-    //vec2 offset2 = vec2(0.6, 1.1) * degree * 0.001;
+    vec2 offset2 = vec2(0.6, 1.1) * degree * 0.001;
     vec2 vertexPos = teTexCoord + offset1;
     float hight1 = texture(heightMap, vertexPos).y * 1;
-    //float hight2 = texture(heightMap, teTexCoord + offset2).y * 1;
-    float Height = hight1;// hight1 + hight2;
+    float hight2 = texture(heightMap, teTexCoord + offset2).y * 1;
+    float Height = hight1 + hight2;;// hight1 + hight2;
     //Height = texture(heightMap, teTexCoord).y * 10.0;// * 64.0 - 16.0
     
     vec4 inter = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
@@ -120,16 +120,10 @@ void main()
     vec3 texCoord_x = vec3(offset_x.x, texture(heightMap, vertexPos + offset_x).y, 0);
     vec3 texCoord_y = vec3(0, texture(heightMap, vertexPos + offset_y).y, offset_y.y);
 
-    float xOffsetHeight = texture(heightMap, vertexPos + offset_x).y;
-    float yOffsetHeight = texture(heightMap, vertexPos + offset_y).y;
-
-    vec3 modelXOffset = vec3(inter.x, inter.y + xOffsetHeight, inter.z);
-    vec3 modelYOffset = vec3(inter.x, inter.y + yOffsetHeight, inter.z);
-
     vec3 x_vector = texCoord_x - texCoord_origin;
     vec3 y_vector = texCoord_y - texCoord_origin;
 
-    Normal_FS_in = cross(x_vector, y_vector);// cross(x_vector, y_vector);
+    Normal_FS_in = cross(y_vector, x_vector);// cross(x_vector, y_vector);
     Normal_FS_in = normalize(mat3(transpose(inverse(view * model))) * Normal_FS_in);
    
     gl_Position = projection * view * model * newPos;
@@ -199,15 +193,17 @@ uniform sampler2D normalMap;
 
 void main()
 {
+    vec3 normal = Normal_FS_in;
 
-    vec3 col = vec3(0, 1, 1);
+    vec3 col = vec3(0.35, 0.35, 0.67);//vec3(0.419608, 0.137255, 0.556863);
     vec3 viewDir = normalize(viewPos - tePosition);
 
     vec3 I = normalize(tePosition - viewPos);
-    vec3 R = reflect(I, vec3(0,1,0));
-    float reflectiveFactor = dot(viewDir, Normal_FS_in);
+    vec3 R = reflect(I, normal);
+    float reflectiveFactor = dot(viewDir, normal);
+    reflectiveFactor = pow(reflectiveFactor, 5.0);
     //FragColor = vec4(texture(skybox, R).rgb, 1.0);
-    col = mix(texture(skybox, R).rgb, texture(skybox, R).rgb, reflectiveFactor);//mix(texture(skybox, R).rgb, vec3(0, 1, 1), reflectiveFactor);
+    col = mix(texture(skybox, R).rgb, col, reflectiveFactor);//mix(texture(skybox, R).rgb, vec3(0, 1, 1), reflectiveFactor);
 
     vec3 ambient = col;
 
@@ -215,7 +211,7 @@ void main()
     // transform normal vector to range [-1,1]
     //normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
 
-    vec3 normal = Normal_FS_in; //Normal_FS_in;// vec3(0, 1, 0);
+     //Normal_FS_in;// vec3(0, 1, 0);
 
     // diffuse 
     vec3 lightDir = normalize(lightPos - tePosition);
