@@ -203,15 +203,19 @@ void main()
 {
     vec3 normal = Normal_FS_in;
 
-    vec3 col = vec3(0.35, 0.35, 0.67);//vec3(0.419608, 0.137255, 0.556863);
+    vec3 col = vec3(0.137255, 0.419608, 0.556863);//rich blue vec3(0.35, 0.35, 0.67);//vec3(0.419608, 0.137255, 0.556863);
     vec3 viewDir = normalize(viewPos - tePosition);
 
     vec3 I = normalize(tePosition - viewPos);
     vec3 R = reflect(I, normal);
     float reflectiveFactor = dot(viewDir, normal);
-    //reflectiveFactor = pow(reflectiveFactor, 5.0);
+    reflectiveFactor = pow(reflectiveFactor, 0.2);
     //FragColor = vec4(texture(skybox, R).rgb, 1.0);
-    col = mix(texture(skybox, R).rgb, col, reflectiveFactor) ;//mix(texture(skybox, R).rgb, vec3(0, 1, 1), reflectiveFactor);
+    float ratio = 1.00 / 1.33;
+    vec3 R_refract = refract(I, normal, ratio);
+
+    col = mix(texture(skybox, R).rgb, texture(skybox, R_refract).rgb, reflectiveFactor);//mix(texture(skybox, R).rgb, vec3(0, 1, 1), reflectiveFactor);
+
 
     vec3 ambient = col;
 
@@ -231,7 +235,7 @@ void main()
     vec3 reflectDir = reflect(-lightDir, normal);
     float specular = pow(max(dot(viewDir, reflectDir), 0.0), 64);
 
-    vec3 result = (ambient + diffuse );
+    vec3 result = (ambient + diffuse + specular);
 
     FragColor = vec4(result, 1.0);
 

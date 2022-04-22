@@ -218,7 +218,7 @@ void myDisplay()
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    renderScene(shader);
+    //renderScene(shader);
 
     // Set frame buffer target & render teapot
     // ---------------------------------------
@@ -250,7 +250,7 @@ void myDisplay()
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &teapot_r_projection[0][0]));
 
     //Set frame buffer target to the back buffer
-    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
+    //GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
     //glDisable(GL_DEPTH_TEST);
 
     // draw tessellation plane
@@ -289,9 +289,9 @@ void myDisplay()
     assert(location != -1);
     GLCall(glUniform1ui(location, sinDegree));
 
-    //GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
     GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
     assert(location != -1);
@@ -641,12 +641,12 @@ static void CreateTexture() {
 
     std::vector<std::string> faces
     {
-        "res/texture/cubemap_posx.png",
-        "res/texture/cubemap_negx.png",
-        "res/texture/cubemap_posy.png",
-        "res/texture/cubemap_negy.png",
-        "res/texture/cubemap_posz.png",
-        "res/texture/cubemap_negz.png"
+        "res/texture/posx.png",
+        "res/texture/negx.png",
+        "res/texture/posy.png",
+        "res/texture/negy.png",
+        "res/texture/posz.png",
+        "res/texture/negz.png"
     };
 
     for (unsigned int i = 0; i < faces.size(); i++) {
@@ -873,7 +873,7 @@ void Perlin() {
     ppm image(width, height);
 
     // Create a PerlinNoise object with a random permutation vector generated with seed
-    unsigned int seed = 400;//237
+    unsigned int seed = 800;//237
     PerlinNoise pn(seed);
 
     unsigned int kk = 0;
