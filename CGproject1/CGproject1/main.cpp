@@ -117,7 +117,7 @@ std::vector<glm::vec3> cubemapVertices;
 std::vector<glm::vec3> geometryVertices;
 
 // lighting
-glm::vec3 lightPos(20.0f, 20.0f, 10.0f);//20f, 20f, 10.0f -60.0f, 45.0f, 20.0f
+glm::vec3 lightPos(20.0f, 20.0f, -10.0f);//20f, 20f, 10.0f -60.0f, 45.0f, 20.0f
 glm::vec3 lightPosOrigin(20.0f, 20.0f, 10.0f);
 float degree = 0.0f;
 float horDegree = 0.0f;
@@ -289,11 +289,11 @@ void myDisplay()
     assert(location != -1);
     GLCall(glUniform1ui(location, sinDegree));
 
-    GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    //GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-    GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
+  /*  GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
 
@@ -301,7 +301,7 @@ void myDisplay()
     assert(location != -1);
     GLCall(glUniform1i(location, 0));
     GLCall(glActiveTexture(GL_TEXTURE0));
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
+    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));*/
     //texture
     /*GLCall(location = glGetUniformLocation(tessShader, "normalMap"));
     assert(location != -1);
@@ -309,6 +309,7 @@ void myDisplay()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, normalTexture);*/
 
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     GLCall(glBindVertexArray(VAO));
     GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
     GLCall(glDrawArrays(GL_PATCHES, 0, 4));
@@ -771,10 +772,10 @@ void CreateBufferTest()
         // 20.0f, 0.0f,  20.0f,  20.0f, 20.0f
 
          // positions          // texture coords 
-        - 20.0f, -10.0f,  -40.0f,  0.0f, 40.0f,
-        -20.0f, -10.0f, -80.0f,  0.0f, 0.0f,
-         20.0f, -10.0f, -80.0f,  40.0f, 0.0f,
-         20.0f, -10.0f,  -40.0f,  40.0f, 40.0f
+        -60.0f, -15.0f,  0.0f,  0.0f, 1.0f,
+        -60.0f, -15.0f, 120.0f,  0.0f, 0.0f,
+         60.0f, -15.0f, 120.0f,  1.0f, 0.0f,
+         60.0f, -15.0f,  0.0f,  1.0f, 1.0f
 
     };
     
@@ -867,7 +868,7 @@ int loadPPM(const char* filename) {
 void Perlin() {
 
     // Define the size of the image
-    unsigned int width = 800, height = 800;//600 450
+    unsigned int width = 200, height = 200;//600 450
 
     // Create an empty PPM image
     ppm image(width, height);

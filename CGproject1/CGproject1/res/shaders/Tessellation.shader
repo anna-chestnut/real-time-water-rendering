@@ -32,7 +32,7 @@ out vec2 TextureCoord[];
 
 void main()
 {
-    float num = 50.0;
+    float num = 480.0;
     gl_TessLevelOuter[0] = num;
     gl_TessLevelOuter[1] = num;
     gl_TessLevelOuter[2] = num;
@@ -100,12 +100,14 @@ void main()
     //vec3 normal = texture(heightMap, texCoord).rgb;
     //normal = normalize(normal * 2.0 - 1.0);
 
+    float heightValue = 2.5;
+
     //heightColor = texture(heightMap, texCoord).rgb;
-    vec2 offset1 = vec2(0.8, 0.4) * degree * 0.001;
-    vec2 offset2 = vec2(0.6, 1.1) * degree * 0.001;
-    vec2 vertexPos = teTexCoord + offset1;
-    float hight1 = texture(heightMap, teTexCoord + offset1).z * 1;
-    float hight2 = texture(heightMap, teTexCoord + offset2).z * 1;
+    vec2 offset1 = vec2(0.5, 0.1) * degree * 0.0015;//vec2(0.8, 0.4)
+    vec2 offset2 = vec2(0.4, 0.7) * degree * 0.0015;//vec2(0.6, 1.1)
+    
+    float hight1 = texture(heightMap, teTexCoord + offset1).z * heightValue;
+    float hight2 = texture(heightMap, teTexCoord + offset2).z * heightValue;
     float Height = hight1 + hight2;// hight1 + hight2;
     //Height = texture(heightMap, teTexCoord).y * 10.0;// * 64.0 - 16.0
     
@@ -114,15 +116,15 @@ void main()
 
     vec3 texCoord_origin = vec3(0, Height, 0);
 
-    vec2 teTexCoord_x = teTexCoord + vec2(0.01, 0);
-    vec2 teTexCoord_y = teTexCoord + vec2(0, 0.01);
+    vec2 teTexCoord_x = teTexCoord + vec2(0.001, 0);
+    vec2 teTexCoord_y = teTexCoord + vec2(0, 0.001);
 
-    hight1 = texture(heightMap, teTexCoord_x + offset1).z * 1;
-    hight2 = texture(heightMap, teTexCoord_x + offset2).z * 1;
+    hight1 = texture(heightMap, teTexCoord_x + offset1).z * heightValue;
+    hight2 = texture(heightMap, teTexCoord_x + offset2).z * heightValue;
     float Height_x = hight1 + hight2;
 
-    hight1 = texture(heightMap, teTexCoord_y + offset1).z * 1;
-    hight2 = texture(heightMap, teTexCoord_y + offset2).z * 1;
+    hight1 = texture(heightMap, teTexCoord_y + offset1).z * heightValue;
+    hight2 = texture(heightMap, teTexCoord_y + offset2).z * heightValue;
     float Height_y = hight1 + hight2;
     
     vec3 texCoord_x = vec3(teTexCoord_x.x, texture(heightMap, teTexCoord_x + Height_x).y, 0);
@@ -130,6 +132,16 @@ void main()
 
     vec3 x_vector = texCoord_x - texCoord_origin;
     vec3 y_vector = texCoord_y - texCoord_origin;
+
+    //without animation
+   /* float h = texture(heightMap, teTexCoord).z * 2;
+    newPos = vec4(inter.x, inter.y + h, inter.z, 1.0);
+
+    float x_h = texture(heightMap, teTexCoord_x).z * 2;
+    float y_h = texture(heightMap, teTexCoord_y).z * 2;
+
+    x_vector = vec3(teTexCoord_x.x, texture(heightMap, teTexCoord_x + x_h).y - h, 0);
+    y_vector = vec3(0, texture(heightMap, teTexCoord_y + x_h).y - h, teTexCoord_y.y);*/
 
     Normal_FS_in = cross(y_vector, x_vector);// cross(x_vector, y_vector);
     Normal_FS_in = normalize(mat3(transpose(inverse(view * model))) * Normal_FS_in);
@@ -201,7 +213,7 @@ uniform sampler2D normalMap;
 
 void main()
 {
-    vec3 normal = Normal_FS_in;
+    vec3 normal = Normal_FS_in;//Normal_FS_in;
 
     vec3 col = vec3(0.137255, 0.419608, 0.556863);//rich blue vec3(0.35, 0.35, 0.67);//vec3(0.419608, 0.137255, 0.556863);
     vec3 viewDir = normalize(viewPos - tePosition);
@@ -209,12 +221,12 @@ void main()
     vec3 I = normalize(tePosition - viewPos);
     vec3 R = reflect(I, normal);
     float reflectiveFactor = dot(viewDir, normal);
-    reflectiveFactor = pow(reflectiveFactor, 0.2);
+    reflectiveFactor = pow(reflectiveFactor, 3);
     //FragColor = vec4(texture(skybox, R).rgb, 1.0);
     float ratio = 1.00 / 1.33;
     vec3 R_refract = refract(I, normal, ratio);
 
-    col = mix(texture(skybox, R).rgb, texture(skybox, R_refract).rgb, reflectiveFactor);//mix(texture(skybox, R).rgb, vec3(0, 1, 1), reflectiveFactor);
+    col = mix(texture(skybox, R).rgb, texture(skybox, R).rgb, reflectiveFactor);//mix(texture(skybox, R).rgb, texture(skybox, R_refract).rgb, reflectiveFactor);
 
 
     vec3 ambient = col;
@@ -235,9 +247,9 @@ void main()
     vec3 reflectDir = reflect(-lightDir, normal);
     float specular = pow(max(dot(viewDir, reflectDir), 0.0), 64);
 
-    vec3 result = (ambient + diffuse + specular);
+    vec3 result = (ambient );
 
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(normal, 1.0);
 
     /*float h = (Height) / 10.0f;
     FragColor = vec4(h, 0.0, 0.0, 1.0);*/
