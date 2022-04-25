@@ -262,13 +262,13 @@ void myDisplay()
     //glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
     //glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
     //glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    
+    glm::mat4 plane_model = glm::mat4(1.0f); //translation*rotation*scale
 
     GLCall(glUseProgram(tessShader));
 
     GLCall(GLuint modelId = glGetUniformLocation(tessShader, "model"));
     assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &plane_model[0][0]));
 
     GLCall(viewId = glGetUniformLocation(tessShader, "view"));
     assert(viewId != -1);
@@ -309,7 +309,7 @@ void myDisplay()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, normalTexture);*/
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     GLCall(glBindVertexArray(VAO));
     GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
     GLCall(glDrawArrays(GL_PATCHES, 0, 4));
@@ -772,10 +772,10 @@ void CreateBufferTest()
         // 20.0f, 0.0f,  20.0f,  20.0f, 20.0f
 
          // positions          // texture coords 
-        -60.0f, -15.0f,  0.0f,  0.0f, 1.0f,
-        -60.0f, -15.0f, 120.0f,  0.0f, 0.0f,
-         60.0f, -15.0f, 120.0f,  1.0f, 0.0f,
-         60.0f, -15.0f,  0.0f,  1.0f, 1.0f
+        -100.0f, -20.0f,  -0.0f,  0.0f, 1.0f,
+        -100.0f, -20.0f, -200.0f,  0.0f, 0.0f,
+         100.0f, -20.0f, -200.0f,  1.0f, 0.0f,
+         100.0f, -20.0f,  -0.0f,  1.0f, 1.0f
 
     };
     
@@ -868,13 +868,13 @@ int loadPPM(const char* filename) {
 void Perlin() {
 
     // Define the size of the image
-    unsigned int width = 200, height = 200;//600 450
+    unsigned int width = 600, height = 600;//600 450
 
     // Create an empty PPM image
     ppm image(width, height);
 
     // Create a PerlinNoise object with a random permutation vector generated with seed
-    unsigned int seed = 800;//237
+    unsigned int seed = 1237;//237
     PerlinNoise pn(seed);
 
     unsigned int kk = 0;
