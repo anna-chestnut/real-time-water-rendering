@@ -97,8 +97,15 @@ void main()
     vec2 t1 = (t11 - t10) * u + t10;
     teTexCoord = (t1 - t0) * v + t0;
 
-    //vec3 normal = texture(heightMap, texCoord).rgb;
-    //normal = normalize(normal * 2.0 - 1.0);
+    // David
+    // -----
+    float delta = 0.001f;
+    vec2 noiseLoc = teTexCoord;
+    vec2 xOffsetLoc = noiseLoc + vec2(delta, 0);
+    vec2 yOffsetLoc = noiseLoc + vec2(0, delta);
+    float xHeight = texture(heightMap, xOffsetLoc).z;
+    float yHeight = texture(heightMap, yOffsetLoc).z;
+
 
     float heightValue = 1;
 
@@ -226,7 +233,7 @@ void main()
     float ratio = 1.00 / 1.33;
     vec3 R_refract = refract(I, normal, ratio);
 
-    col = mix(texture(skybox, R).rgb, vec3(0.137255, 0.419608, 0.556863), reflectiveFactor);//mix(texture(skybox, R).rgb, texture(skybox, R_refract).rgb, reflectiveFactor);
+    col = mix(texture(skybox, R).rgb, texture(skybox, R_refract).rgb, reflectiveFactor);//mix(texture(skybox, R).rgb, texture(skybox, R_refract).rgb, reflectiveFactor);
 
 
     vec3 ambient = col;
@@ -249,7 +256,7 @@ void main()
 
     vec3 result = (ambient);// + diffuse + specular
 
-    FragColor = vec4(Normal_FS_in, 1.0);
+    FragColor = vec4(result, 1.0);
 
     /*float h = (Height) / 10.0f;
     FragColor = vec4(h, 0.0, 0.0, 1.0);*/
