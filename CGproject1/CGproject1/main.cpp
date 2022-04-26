@@ -293,7 +293,7 @@ void myDisplay()
     //assert(location != -1);
     //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-  /*  GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
+    /*GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
 
@@ -309,7 +309,7 @@ void myDisplay()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, normalTexture);*/
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     GLCall(glBindVertexArray(VAO));
     GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
     GLCall(glDrawArrays(GL_PATCHES, 0, 4));
@@ -757,6 +757,7 @@ static void LoadShaders() {
 
 void CreateBufferTest()
 {
+    float texCoor = 1.0f;
     float points[] = {
         //-0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // top-left
         // 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // top-right
@@ -772,10 +773,10 @@ void CreateBufferTest()
         // 20.0f, 0.0f,  20.0f,  20.0f, 20.0f
 
          // positions          // texture coords 
-        -100.0f, -20.0f,  -0.0f,  0.0f, 1.0f,
-        -100.0f, -20.0f, -200.0f,  0.0f, 0.0f,
-         100.0f, -20.0f, -200.0f,  1.0f, 0.0f,
-         100.0f, -20.0f,  -0.0f,  1.0f, 1.0f
+        -30.0f, -10.0f,  -20.0f,  0.0f, 0.0f,
+        -30.0f, -10.0f, -80.0f,  0.0f, texCoor,
+         30.0f, -10.0f,  -80.0f,  texCoor, texCoor,
+         30.0f, -10.0f, -20.0f,  texCoor, 0.0f
 
     };
     
@@ -868,13 +869,13 @@ int loadPPM(const char* filename) {
 void Perlin() {
 
     // Define the size of the image
-    unsigned int width = 600, height = 600;//600 450
+    unsigned int width = 100, height = 100;//600 450
 
     // Create an empty PPM image
     ppm image(width, height);
 
     // Create a PerlinNoise object with a random permutation vector generated with seed
-    unsigned int seed = 1237;//237
+    unsigned int seed = 117;//237
     PerlinNoise pn(seed);
 
     unsigned int kk = 0;
@@ -885,7 +886,7 @@ void Perlin() {
             double y = (double)i / ((double)height);
 
             // Typical Perlin noise
-            double n = pn.noise(10 * x, 10 * y, 0.8);
+            double n = pn.noise(25 * x, 25 * y, 0.9); //double n = pn.OctavePerlin(10 * x, 10 * y, 0.8, 7,8); //double n = pn.noise(10 * x, 10 * y, 0.8);
 
             // Wood like structure
             //n = 20 * pn.noise(x, y, 0.8);
